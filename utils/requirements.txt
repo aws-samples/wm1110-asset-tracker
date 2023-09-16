@@ -1,0 +1,7 @@
+pyyaml
+requests ~= 2.25.1
+intelhex
+botocore
+boto3
+awscli
+-r tools/provision/requirements.txt

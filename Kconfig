@@ -1,0 +1,62 @@
+mainmenu "AWS IoT Sidewalk Asset Tracker"
+
+menu "Asset Tracker"
+
+config TRACKER_LOG
+	bool
+	default TRACKER
+	imply LOG
+	help
+	  Asset Tracker log module
+
+config BLE_CONN_TIMEOUT
+        prompt "Sidewalk BLE connection timeout (s)"
+        int
+        default 240
+        help
+               Timeout for Sidewalk gateway to make connection for BLE uplinks.
+
+config LONG_PRESS_PER_MS
+        prompt "Long button press time (ms)"
+        int
+        default 10000
+        help
+               Period of time in ms for a button press to be considered a long press.
+
+config IN_MOTION_PER_M
+        prompt "In motion period (m)"
+        int
+        default 5
+        help
+               Time in seconds device will stay in the motion state from last motion event.
+
+config MOTION_SCAN_PER_S
+        prompt "Motion uplink period (s)"
+        int
+        default 60
+        help
+               Delay in seconds between scanning and uplinking when the device is in motion.
+
+config STATIC_SCAN_PER_M
+        prompt "Static uplink period (m)"
+        int
+        default 60
+        help
+               Delay in minutes between scanning and uplinking when the device is static.
+
+config ASSET_TRACKER_CLI
+        prompt "Enable the Asset Tracker serial shell CLI"
+        bool
+        default y
+        help
+               Enables(y) or disables(n) the zephyr shell for the Asset Tracker.
+
+endmenu
+
+module = TRACKER
+module-str = Sidewalk Asset Tracker
+source "${ZEPHYR_BASE}/subsys/logging/Kconfig.template.log_config"
+
+rsource "${ZEPHYR_BASE}/../sidewalk/samples/common/Kconfig.defconfig"
+
+source "Kconfig.zephyr"

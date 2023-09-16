@@ -1,0 +1,97 @@
+From 6c8f079c4bf588830b56c048cb7bca9e6efd0bae Mon Sep 17 00:00:00 2001
+From: Ben Cooke <btc@amazon.com>
+Date: Thu, 21 Sep 2023 08:48:05 -0500
+Subject: [PATCH] add WioTracker1110 board target
+
+---
+ src/boards/wio_tracker_1110/board.h     | 41 +++++++++++++++++++++++++
+ src/boards/wio_tracker_1110/board.mk    |  1 +
+ src/boards/wio_tracker_1110/pinconfig.c | 19 ++++++++++++
+ 3 files changed, 61 insertions(+)
+ create mode 100644 src/boards/wio_tracker_1110/board.h
+ create mode 100644 src/boards/wio_tracker_1110/board.mk
+ create mode 100644 src/boards/wio_tracker_1110/pinconfig.c
+
+diff --git a/src/boards/wio_tracker_1110/board.h b/src/boards/wio_tracker_1110/board.h
+new file mode 100644
+index 0000000..1ff5fec
+--- /dev/null
++++ b/src/boards/wio_tracker_1110/board.h
+@@ -0,0 +1,41 @@
++#ifndef _WIO_TRACKER_1110_H
++#define _WIO_TRACKER_1110_H
++
++#define _PINNUM(port, pin)    ((port)*32 + (pin))
++
++/*------------------------------------------------------------------*/
++/* LED
++ *------------------------------------------------------------------*/
++#define LEDS_NUMBER           1
++#define LED_PRIMARY_PIN       _PINNUM(0, 6)
++#define LED_STATE_ON          0
++
++/*------------------------------------------------------------------*/
++/* BUTTON
++ *------------------------------------------------------------------*/
++#define BUTTONS_NUMBER        2
++#define BUTTON_1              _PINNUM(1, 2)
++//button 2 assignment on unconnected pin of wm1110.  only double reset used to enter BL.
++#define BUTTON_2              _PINNUM(1, 8)
++#define BUTTON_PULL           NRF_GPIO_PIN_PULLUP
++
++//--------------------------------------------------------------------+
++// BLE OTA
++//--------------------------------------------------------------------+
++#define BLEDIS_MANUFACTURER   "Seeed Studio"
++#define BLEDIS_MODEL          "Wio Tracker 1110"
++
++//--------------------------------------------------------------------+
++// USB
++//--------------------------------------------------------------------+
++#define USB_DESC_VID           0x239A
++#define USB_DESC_UF2_PID       0x0029
++#define USB_DESC_CDC_ONLY_PID  0x002A
++
++//------------- UF2 -------------//
++#define UF2_PRODUCT_NAME      "Seeed Wio Tracker 1110"
++#define UF2_VOLUME_LABEL      "WM1110_BOOT"
++#define UF2_BOARD_ID          "WioTracker1110"
++#define UF2_INDEX_URL         "https://www.seeedstudio.com/Wio-WM1110-Module-LR1110-and-nRF52840-p-5676.html"
++
++#endif // _WIO_TRACKER_1110_H
+\ No newline at end of file
+diff --git a/src/boards/wio_tracker_1110/board.mk b/src/boards/wio_tracker_1110/board.mk
+new file mode 100644
+index 0000000..9d29ac6
+--- /dev/null
++++ b/src/boards/wio_tracker_1110/board.mk
+@@ -0,0 +1 @@
++MCU_SUB_VARIANT = nrf52840
+diff --git a/src/boards/wio_tracker_1110/pinconfig.c b/src/boards/wio_tracker_1110/pinconfig.c
+new file mode 100644
+index 0000000..90768e8
+--- /dev/null
++++ b/src/boards/wio_tracker_1110/pinconfig.c
+@@ -0,0 +1,19 @@
++#include "boards.h"
++#include "uf2/configkeys.h"
++
++__attribute__((used, section(".bootloaderConfig")))
++const uint32_t bootloaderConfig[] =
++{
++  /* CF2 START */
++  CFG_MAGIC0, CFG_MAGIC1,                       // magic
++  5, 100,                                       // used entries, total entries
++
++  CFG_FLASH_BYTES,         0x100000,                                // FLASH_BYTES = 0x100000
++  CFG_RAM_BYTES,           0x40000,                                 // RAM_BYTES = 0x40000
++  CFG_BOOTLOADER_BOARD_ID, (USB_DESC_VID << 16) | USB_DESC_UF2_PID, // BOOTLOADER_BOARD_ID = USB VID+PID, used for verification when updating bootloader via uf2
++  CFG_UF2_FAMILY,          0xada52840,                              // UF2_FAMILY = 0xada52840
++  CFG_PINS_PORT_SIZE,      0x20,                                    // PINS_PORT_SIZE = PA_32
++
++  0, 0, 0, 0, 0, 0, 0, 0
++  /* CF2 END */
++};
+-- 
+2.37.3
+
