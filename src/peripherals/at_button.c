@@ -29,17 +29,15 @@ void button_pressed_cb(const struct device *dev, struct gpio_callback *cb, gpio_
 		userbutton_pressed = true;
 		btn_press_timer_set_and_run();
 
-		// at_event_send(EVENT_WIFI_SCAN);
 	} else {
 		btn_press_timer_stop();
 		userbutton_pressed = false;
 
 		if(button_long_press) {
-			LOG_INF("userbutton LONG press");
-			//switch link mode type and reset
+			at_event_send(BUTTON_EVENT_LONG);
+			button_long_press = false;
 		} else {
-			LOG_INF("Immediate scan and uplink triggered...");
-			scan_timer_set_and_run(K_MSEC(500));
+			at_event_send(BUTTON_EVENT_SHORT);
 		}
 	}
 

@@ -15,7 +15,9 @@
 LOG_MODULE_REGISTER(main, CONFIG_TRACKER_LOG_LEVEL);
 
 /* 1000 msec = 1 sec */
-#define SLEEP_TIME_MS   1000
+#define LED_FAST   100
+#define LED_WS	   2000
+#define LED_SLOW   1000
 
 int main(void)
 {
@@ -36,8 +38,13 @@ int main(void)
 	}
 
 	while (1) {
-		at_led_toggle();
-		k_msleep(SLEEP_TIME_MS);
+		if(button_long_press == true) { 
+			at_led_toggle();
+			k_msleep(LED_FAST);
+		} else {
+			at_led_toggle();
+			k_msleep(LED_SLOW);
+		}
 	}
 	return 0;
 }

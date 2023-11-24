@@ -106,10 +106,8 @@ static int cmd_enter_bootloader(const struct shell *sh, size_t argc, char **argv
 
 static int cmd_workshop_enable(const struct shell *sh, size_t argc, char **argv) {
 
-	atcontext->at_conf.sid_link_type = BLE_LM;
-	atcontext->at_conf.loc_scan_mode = (loc_scan_t) WIFI;
-	atcontext->at_conf.workshop_mode = true;
-	//TODO WRITE CONFIG STORE
+	atcontext->at_conf.workshop_mode = false;  //force false to ensure it will be enabled by the event
+	at_event_send(EVENT_SWITCH_WS_MODE);
 	shell_warn(sh, "\n  Workshop mode enabled - Device will use the static mac and rssi values from workshop config and will uplink using BLE.\n");
 	return 0;
 
@@ -117,10 +115,8 @@ static int cmd_workshop_enable(const struct shell *sh, size_t argc, char **argv)
 
 static int cmd_workshop_disable(const struct shell *sh, size_t argc, char **argv) {
 
-	atcontext->at_conf.sid_link_type = LORA_LM;
-	atcontext->at_conf.loc_scan_mode = (loc_scan_t) GNSS_WIFI;
-	atcontext->at_conf.workshop_mode = false;
-	//TODO WRITE CONFIG STORE
+	atcontext->at_conf.workshop_mode = true;  //force true to ensure it will be disabled by the event
+	at_event_send(EVENT_SWITCH_WS_MODE);
 	shell_warn(sh, "\n  Workshop mode disabled - Device will free scan GNSS & WIFI and uplink using LoRa.\n");
 	return 0;
 
@@ -215,7 +211,7 @@ static int cmd_print_workshop_status(const struct shell *sh, size_t argc, char *
 
 SHELL_STATIC_SUBCMD_SET_CREATE(
 	sub_config, 
-	SHELL_CMD_ARG(dummy, NULL, "TBD", cmd_workshop_enable, 1, 0),
+	SHELL_CMD_ARG(dummy, NULL, "Coming soon!", cmd_workshop_enable, 1, 0),
 	// SHELL_CMD_ARG(disable, NULL, "disable workshop mode - devices scans and uplinks based on tracker config", cmd_workshop_disable, 1, 0),
 	// SHELL_CMD_ARG(mac, NULL, "<1|2> + <bssid> + <rssi> - set static mac and rssi used in workshop mode\n"
 	// 						 "\t        ex: workshop mac 1 04:18:D6:36:F1:EC -55\n", 
@@ -239,8 +235,8 @@ SHELL_STATIC_SUBCMD_SET_CREATE(asset_tracker,
 	SHELL_CMD_ARG(info, NULL, "Print Sidewalk Asset Tracker app info",	NULL, 1, 0),
 	SHELL_CMD_ARG(status, NULL, "Print device status",	NULL, 1, 0),
 	SHELL_CMD_ARG(config, &sub_config, "Device config menu",	NULL, 1, 0),
-	SHELL_CMD_ARG(scan_wifi, NULL, "Scan Wifi and print results",	NULL, 1, 0),
-	SHELL_CMD_ARG(scan_gnss, NULL, "Scan GNSS and print results",	NULL, 1, 0),
+	// SHELL_CMD_ARG(scan_wifi, NULL, "Scan Wifi and print results",	NULL, 1, 0),
+	// SHELL_CMD_ARG(scan_gnss, NULL, "Scan GNSS and print results",	NULL, 1, 0),
 	SHELL_CMD_ARG(workshop, &sub_workshop, "Workshop mode menu",	NULL, 1, 0),
 	SHELL_CMD_ARG(factory_reset, NULL, "Factory reset device - wipe storage and Sidewalk session",	NULL, 2, 0),
 	SHELL_CMD_ARG(enter_bootloader, NULL, "Enter bootloader for UF2 flashing", cmd_enter_bootloader, 1, 0),
