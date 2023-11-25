@@ -46,8 +46,8 @@ static at_ctx_t *atcontext;
 
 // #ifdef LR11xx
 lr11xx_gnss_result_t gnss_result;
-#define ASSIST_LATITUDE		30.39
-#define ASSIST_LONGITUDE	-98.06
+#define ASSIST_LATITUDE		36.12
+#define ASSIST_LONGITUDE	-115.16
 lr11xx_gnss_solver_assistance_position_t assistance_position = { ASSIST_LATITUDE, ASSIST_LONGITUDE };
 
 // minimum number of sattelites required to consider the nav message accurate enough to send
@@ -133,6 +133,8 @@ void start_gnss_scan(at_ctx_t *app_ctx)
 
 	struct sid_timespec curr_time;
 	void * drv_ctx = lr11xx_get_drv_ctx();
+	lr11xx_status_t status;
+
 	if (lr11xx_system_wakeup(drv_ctx) != LR11XX_STATUS_OK) {
 		LOG_ERR("LR11XX wake-up fail");
 		return;
@@ -143,25 +145,43 @@ void start_gnss_scan(at_ctx_t *app_ctx)
 		LOG_ERR("sid_get_time fail %d", ret);
 		return;
 	}
-	lr11xx_status_t status;
-	status = lr11xx_gnss_set_assistance_position(drv_ctx, &assistance_position);
-	if (status == LR11XX_STATUS_ERROR) {
-		LOG_ERR("set assist-pos fail");
-		return;
-	}
 	//Save the GPS capture time
 	atcontext->gnss_scan_results.capture_time = (uint32_t) curr_time.tv_sec;
 
-	status = lr11xx_gnss_scan_assisted(drv_ctx,
-		curr_time.tv_sec,
-		LR11XX_GNSS_OPTION_BEST_EFFORT,
-		LR11XX_GNSS_RESULTS_DOPPLER_ENABLE_MASK | LR11XX_GNSS_RESULTS_DOPPLER_MASK | LR11XX_GNSS_RESULTS_BIT_CHANGE_MASK,
-		NB_MAX_SV
-	);
-	if (status == LR11XX_STATUS_ERROR)
-		LOG_ERR("GNSS: assisted scan fail");
-#ifdef GNSS_DEBUG
-	else
-		LOG_INF("GNSS assisted scan started %u, %f %f", curr_time.tv_sec, assistance_position.latitude, assistance_position.longitude);
-#endif /* GNSS_DEBUG */
+	//Do either assisted or autonomous scan based on at config
+	if(atcontext->at_conf.gnss_scan_mode == GNSS_ASSISTED) {
+
+		status = lr11xx_gnss_set_assistance_position(drv_ctx, &assistance_position);
+		if (status == LR11XX_STATUS_ERROR) {
+			LOG_ERR("set assist-pos fail");
+			return;
+		}
+
+		status = lr11xx_gnss_scan_assisted(drv_ctx,
+			curr_time.tv_sec,
+			LR11XX_GNSS_OPTION_BEST_EFFORT,
+			LR11XX_GNSS_RESULTS_DOPPLER_ENABLE_MASK | LR11XX_GNSS_RESULTS_DOPPLER_MASK | LR11XX_GNSS_RESULTS_BIT_CHANGE_MASK,
+			NB_MAX_SV
+		);
+		
+		if (status == LR11XX_STATUS_ERROR)
+			LOG_ERR("GNSS: assisted scan fail");
+	#ifdef GNSS_DEBUG
+		else
+			LOG_INF("GNSS assisted scan started %u, %f %f", curr_time.tv_sec, assistance_position.latitude, assistance_position.longitude);
+	#endif /* GNSS_DEBUG */
+	} else {
+		status = lr11xx_gnss_scan_autonomous(drv_ctx,
+			curr_time.tv_sec,
+			LR11XX_GNSS_OPTION_BEST_EFFORT,
+			LR11XX_GNSS_RESULTS_DOPPLER_ENABLE_MASK | LR11XX_GNSS_RESULTS_DOPPLER_MASK | LR11XX_GNSS_RESULTS_BIT_CHANGE_MASK,
+			NB_MAX_SV
+		);
+		if (status == LR11XX_STATUS_ERROR)
+			LOG_ERR("GNSS: autonomous scan fail");
+	#ifdef GNSS_DEBUG
+		else
+			LOG_INF("GNSS autonomous scan started %u", curr_time.tv_sec);
+	#endif /* GNSS_DEBUG */
+	}
 }

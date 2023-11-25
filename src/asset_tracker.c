@@ -137,8 +137,12 @@ static void at_app_entry(void *ctx, void *unused, void *unused2)
 					break;
 				
 				case BUTTON_EVENT_SHORT:
-					LOG_INF("Immediate scan and uplink triggered...");
-					scan_timer_set_and_run(K_MSEC(2000));
+					if(at_ctx->total_msg == 0){
+						LOG_INF("Immediate scan and uplink triggered...");
+						scan_timer_set_and_run(K_MSEC(2000));
+					} else {
+						LOG_INF("Uplink in progress. Try again later!");
+					}
 					break;
 				
 				case BUTTON_EVENT_LONG:
@@ -147,7 +151,6 @@ static void at_app_entry(void *ctx, void *unused, void *unused2)
 					break;
 				
 				case EVENT_SWITCH_WS_MODE:
-					
 					if(at_ctx->at_conf.workshop_mode==true) {
 						at_ctx->at_conf.sid_link_type = LORA_LM;
 						at_ctx->at_conf.loc_scan_mode = (loc_scan_t) GNSS_WIFI;
@@ -283,6 +286,7 @@ sid_error_t at_thread_init(void)
 		// .sid_link_type = LORA_LM,
 		.sid_link_type = BLE_LM,
 		.loc_scan_mode = (loc_scan_t) WIFI,
+		.gnss_scan_mode = (gnss_scan_mode_t) GNSS_AUTONOMOUS,
 		.motion_period = CONFIG_IN_MOTION_PER_M,
 		.scan_freq_motion = CONFIG_MOTION_SCAN_PER_S,
 		.motion_thres = 5,
