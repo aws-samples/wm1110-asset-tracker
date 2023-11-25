@@ -35,6 +35,7 @@ void at_send_uplink(at_ctx_t *context)
 
 		case NOLOC_T:
 			at_ctx->total_msg = 1;
+			at_ctx->cur_msg++;
 			payload[0] = (uptype<<6);  //Upper two bits is message type.
 			payload[1] = at_ctx->sensors.batt;
 			payload[2] = (int8_t) at_ctx->sensors.temp;
