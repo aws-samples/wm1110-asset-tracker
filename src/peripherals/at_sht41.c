@@ -48,7 +48,7 @@ int get_temp_hum(struct at_sensors *sensors) {
 	sensors->temp = sensor_value_to_double(&temp);
 	sensors->hum = sensor_value_to_double(&hum);
 
-	LOG_DBG("SHT4X: %.2f Temp. [C] ; %0.2f RH [%%]", sensors->temp, sensors->hum); 
+	LOG_INF("SHT4X: %.2f Temp. [C] ; %0.2f RH [%%]", sensors->temp, sensors->hum); 
 
 	return 0;
 }
