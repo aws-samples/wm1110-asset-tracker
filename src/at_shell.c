@@ -209,14 +209,35 @@ static int cmd_print_workshop_status(const struct shell *sh, size_t argc, char *
 
 }
 
+static int cmd_config_radio(const struct shell *sh, size_t argc, char **argv) {
+
+	if (strlen(argv[1]) != 1) {
+		shell_error(sh, "invalid radio type");
+		return CMD_RETURN_ARGUMENT_INVALID;
+	}
+
+	switch (argv[1][0]) {
+	case '1':
+		atcontext->at_conf.sid_link_type = BLE_LM;
+		shell_print(sh, "BLE radio type set for Sidewalk communications.");
+		at_event_send(EVENT_RADIO_SWITCH);
+		break;
+	case '2':
+		atcontext->at_conf.sid_link_type = LORA_LM;
+		shell_print(sh, "LoRa radio type set for Sidewalk communications.");
+		at_event_send(EVENT_RADIO_SWITCH);
+		break;
+	default:
+		shell_error(sh, "radio type invalid. 1=ble, 2=lora");
+		return CMD_RETURN_ARGUMENT_INVALID;
+	}
+
+	return 0;
+}
+
 SHELL_STATIC_SUBCMD_SET_CREATE(
 	sub_config, 
-	SHELL_CMD_ARG(dummy, NULL, "Coming soon!", cmd_workshop_enable, 1, 0),
-	// SHELL_CMD_ARG(disable, NULL, "disable workshop mode - devices scans and uplinks based on tracker config", cmd_workshop_disable, 1, 0),
-	// SHELL_CMD_ARG(mac, NULL, "<1|2> + <bssid> + <rssi> - set static mac and rssi used in workshop mode\n"
-	// 						 "\t        ex: workshop mac 1 04:18:D6:36:F1:EC -55\n", 
-	// 	cmd_workshop_set_mac, 4, 0),
-	// SHELL_CMD_ARG(status, NULL, "print workshop mode status and static mac/rssi config", cmd_print_workshop_status, 1, 0),
+	SHELL_CMD_ARG(radio, NULL, "set sidewalk radio to use: 1=ble, 2=lora", cmd_config_radio, 2, 0),
 	SHELL_SUBCMD_SET_END
 );
 

@@ -170,6 +170,12 @@ static void at_app_entry(void *ctx, void *unused, void *unused2)
 					LOG_INF("Restarting stack with new settings...");
 					break;
 
+				case EVENT_RADIO_SWITCH:
+					LOG_INF("Switching Sidewalk radios...");
+					at_event_send(EVENT_SID_STOP);
+					scan_timer_set_and_run(K_MSEC(2000));
+					break;
+
 				case EVENT_BLE_CONNECTION_REQUEST:
 					LOG_INF("Requesting BLE connection...");
 					err = sid_ble_bcn_connection_request(at_ctx->handle, true);
