@@ -3,6 +3,7 @@
 
 #include "peripherals/at_timers.h"
 #include "peripherals/at_button.h"
+#include "peripherals/at_led.h"
 #include "asset_tracker.h"
 
 #include <zephyr/logging/log.h>
@@ -31,24 +32,8 @@ static void scan_timer_cb(struct k_timer *timer_id)
 	at_event_send(EVENT_SCAN_LOC);
 
 	//reload scan timer
-    scan_timer_set_and_run(K_MSEC(300000));  //5min uplink
+    scan_timer_set_and_run(K_SECONDS(CONFIG_MOTION_SCAN_PER_S)); 
 
-	// k_timeout_t delay = K_MSEC(CONFIG_SM_TIMER_DEMO_CAPABILITY_PERIOD_MS);
-	// enum event_type event = EVENT_NOTIFICATION_TIMER_FIRED;
-
-	// if (BUILT_IN_LM == SID_LINK_TYPE_1) {
-	// 	if (!sm_is_sidewalk_ready()) {
-	// 		delay = K_MSEC(CONFIG_SM_TIMER_CONNECT_LINK_TYPE_1_DELAY_MS);
-	// 		event = EVENT_CONNECT_LINK_TYPE_1;
-	// 	}
-	// }
-
-	// if (sm_app_state_get() == DEMO_APP_STATE_NOTIFY_SENSOR_DATA && sm_is_sidewalk_ready()) {
-	// 	delay = K_MSEC(CONFIG_SM_TIMER_DEMO_NOTIFY_SENSOR_DATA_PERIOD_MS);
-	// }
-	// k_timer_start(&cap_timer, delay, Z_TIMEOUT_NO_WAIT);
-
-	// sm_main_task_msg_q_write(event);
 }
 
 static void ble_conn_timer_cb(struct k_timer *timer_id) {
@@ -71,7 +56,7 @@ static void btn_press_timer_cb(struct k_timer *timer_id)
 {
 	ARG_UNUSED(timer_id);
 	button_long_press = true;
-
+	LOG_INF("Long button press...");
 }
 
 void scan_timer_set_and_run(k_timeout_t delay)

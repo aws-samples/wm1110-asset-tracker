@@ -30,7 +30,7 @@
 
 #define MAX_WIFI_NB ( 8 )    //max number of wifi results we will send
 #define MAX_GNSS_SIZE (300)  //max size of GNSS nav buffer
-// #define GNSS_DEBUG
+#define GNSS_DEBUG
 
 #define WIFI_AP_ADDRESS_SIZE ( 6 ) //Size in bytes of a WiFi Access-Point address
 #define WIFI_AP_RSSI_SIZE ( 1 )	//Size in bytes to store the RSSI of a detected WiFi Access-Point
@@ -53,6 +53,11 @@ typedef enum loc_scan_modes {
 	GNSS,
 	GNSS_WIFI,
 } loc_scan_t;
+
+typedef enum gnss_scan_mode {
+	GNSS_ASSISTED,
+	GNSS_AUTONOMOUS,
+} gnss_scan_mode_t;
 
 struct at_sensors {
 	uint8_t batt;
@@ -100,6 +105,7 @@ struct at_config{
     uint16_t max_rec;
     uint32_t sid_link_type;
     loc_scan_t loc_scan_mode;
+	gnss_scan_mode_t gnss_scan_mode;
     uint8_t motion_period;
     uint8_t scan_freq_motion;
     uint8_t motion_thres;
@@ -133,6 +139,8 @@ typedef enum at_events {
 	BUTTON_EVENT_SHORT,
 	BUTTON_EVENT_LONG,
     MOTION_EVENT,
+	EVENT_SWITCH_WS_MODE,
+	EVENT_RADIO_SWITCH,
 	EVENT_BLE_CONNECTION_REQUEST,
 	EVENT_BLE_CONNECTION_WAIT,
 	EVENT_SCAN_LOC,
@@ -140,12 +148,9 @@ typedef enum at_events {
     EVENT_SCAN_SENSORS,
 	EVENT_WIFI_SCAN,
     EVENT_GNSS_SCAN,
-	EVENT_TO_FSK,
-	EVENT_TO_LORA,
     EVENT_SCAN_RESULT_STORE,
 	EVENT_SCAN_RESULT_SEND,
 	EVENT_CONFIG_UPDATE,
-    EVENT_SID_INIT,
     EVENT_SID_START,
     EVENT_SID_STOP,
 	EVENT_UPLINK_COMPLETE,

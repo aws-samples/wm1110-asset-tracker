@@ -67,7 +67,7 @@ int get_accel(struct at_sensors *sensors) {
 	if (rc < 0) {
 		LOG_ERR("ERROR: Update failed: %d", rc);
 	} else {
-		LOG_DBG("%sx %f , y %f , z %f",
+		LOG_INF("%sx %f , y %f , z %f",
 		       overrun,
 		       sensors->max_accel_x,
 		       sensors->max_accel_y,

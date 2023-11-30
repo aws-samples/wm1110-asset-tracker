@@ -106,10 +106,8 @@ static int cmd_enter_bootloader(const struct shell *sh, size_t argc, char **argv
 
 static int cmd_workshop_enable(const struct shell *sh, size_t argc, char **argv) {
 
-	atcontext->at_conf.sid_link_type = BLE_LM;
-	atcontext->at_conf.loc_scan_mode = (loc_scan_t) WIFI;
-	atcontext->at_conf.workshop_mode = true;
-	//TODO WRITE CONFIG STORE
+	atcontext->at_conf.workshop_mode = false;  //force false to ensure it will be enabled by the event
+	at_event_send(EVENT_SWITCH_WS_MODE);
 	shell_warn(sh, "\n  Workshop mode enabled - Device will use the static mac and rssi values from workshop config and will uplink using BLE.\n");
 	return 0;
 
@@ -117,10 +115,8 @@ static int cmd_workshop_enable(const struct shell *sh, size_t argc, char **argv)
 
 static int cmd_workshop_disable(const struct shell *sh, size_t argc, char **argv) {
 
-	atcontext->at_conf.sid_link_type = LORA_LM;
-	atcontext->at_conf.loc_scan_mode = (loc_scan_t) GNSS_WIFI;
-	atcontext->at_conf.workshop_mode = false;
-	//TODO WRITE CONFIG STORE
+	atcontext->at_conf.workshop_mode = true;  //force true to ensure it will be disabled by the event
+	at_event_send(EVENT_SWITCH_WS_MODE);
 	shell_warn(sh, "\n  Workshop mode disabled - Device will free scan GNSS & WIFI and uplink using LoRa.\n");
 	return 0;
 
@@ -213,14 +209,35 @@ static int cmd_print_workshop_status(const struct shell *sh, size_t argc, char *
 
 }
 
+static int cmd_config_radio(const struct shell *sh, size_t argc, char **argv) {
+
+	if (strlen(argv[1]) != 1) {
+		shell_error(sh, "invalid radio type");
+		return CMD_RETURN_ARGUMENT_INVALID;
+	}
+
+	switch (argv[1][0]) {
+	case '1':
+		atcontext->at_conf.sid_link_type = BLE_LM;
+		shell_print(sh, "BLE radio type set for Sidewalk communications.");
+		at_event_send(EVENT_RADIO_SWITCH);
+		break;
+	case '2':
+		atcontext->at_conf.sid_link_type = LORA_LM;
+		shell_print(sh, "LoRa radio type set for Sidewalk communications.");
+		at_event_send(EVENT_RADIO_SWITCH);
+		break;
+	default:
+		shell_error(sh, "radio type invalid. 1=ble, 2=lora");
+		return CMD_RETURN_ARGUMENT_INVALID;
+	}
+
+	return 0;
+}
+
 SHELL_STATIC_SUBCMD_SET_CREATE(
 	sub_config, 
-	SHELL_CMD_ARG(dummy, NULL, "TBD", cmd_workshop_enable, 1, 0),
-	// SHELL_CMD_ARG(disable, NULL, "disable workshop mode - devices scans and uplinks based on tracker config", cmd_workshop_disable, 1, 0),
-	// SHELL_CMD_ARG(mac, NULL, "<1|2> + <bssid> + <rssi> - set static mac and rssi used in workshop mode\n"
-	// 						 "\t        ex: workshop mac 1 04:18:D6:36:F1:EC -55\n", 
-	// 	cmd_workshop_set_mac, 4, 0),
-	// SHELL_CMD_ARG(status, NULL, "print workshop mode status and static mac/rssi config", cmd_print_workshop_status, 1, 0),
+	SHELL_CMD_ARG(radio, NULL, "set sidewalk radio to use: 1=ble, 2=lora", cmd_config_radio, 2, 0),
 	SHELL_SUBCMD_SET_END
 );
 
@@ -236,11 +253,11 @@ SHELL_STATIC_SUBCMD_SET_CREATE(
 );
 
 SHELL_STATIC_SUBCMD_SET_CREATE(asset_tracker,
-	SHELL_CMD_ARG(info, NULL, "Print Sidewalk Asset Tracker app info",	NULL, 1, 0),
-	SHELL_CMD_ARG(status, NULL, "Print device status",	NULL, 1, 0),
+	// SHELL_CMD_ARG(info, NULL, "Print Sidewalk Asset Tracker app info",	NULL, 1, 0),
+	// SHELL_CMD_ARG(status, NULL, "Print device status",	NULL, 1, 0),
 	SHELL_CMD_ARG(config, &sub_config, "Device config menu",	NULL, 1, 0),
-	SHELL_CMD_ARG(scan_wifi, NULL, "Scan Wifi and print results",	NULL, 1, 0),
-	SHELL_CMD_ARG(scan_gnss, NULL, "Scan GNSS and print results",	NULL, 1, 0),
+	// SHELL_CMD_ARG(scan_wifi, NULL, "Scan Wifi and print results",	NULL, 1, 0),
+	// SHELL_CMD_ARG(scan_gnss, NULL, "Scan GNSS and print results",	NULL, 1, 0),
 	SHELL_CMD_ARG(workshop, &sub_workshop, "Workshop mode menu",	NULL, 1, 0),
 	SHELL_CMD_ARG(factory_reset, NULL, "Factory reset device - wipe storage and Sidewalk session",	NULL, 2, 0),
 	SHELL_CMD_ARG(enter_bootloader, NULL, "Enter bootloader for UF2 flashing", cmd_enter_bootloader, 1, 0),

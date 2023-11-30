@@ -25,7 +25,6 @@ LOG_MODULE_REGISTER(asset_tracker, CONFIG_TRACKER_LOG_LEVEL);
 #include <app_ble_config.h>
 #include <app_subGHz_config.h>
 
-// #include <state_notifier.h>
 #include <asset_tracker.h>
 #include "peripherals/at_battery.h"
 #include "peripherals/at_lis3dh.h"
@@ -33,8 +32,7 @@ LOG_MODULE_REGISTER(asset_tracker, CONFIG_TRACKER_LOG_LEVEL);
 #include "peripherals/at_timers.h"
 #include "sidewalk/at_uplink.h"
 #include "sidewalk/at_downlink.h"
-// #include "lr1110/lr11xx_wifi.h"
-// #include "lr1110/lr11xx_gnss.h"
+
 #ifdef ALMANAC_UPDATE
 #include "lr1110/almanac_update.h"
 #endif /* ALMANAC_UPDATE */
@@ -58,15 +56,6 @@ K_MSGQ_DEFINE(at_thread_msgq, sizeof(at_event_t), CONFIG_SIDEWALK_THREAD_QUEUE_S
 #endif
 
 static at_ctx_t asset_tracker_context = {0};
-
-// static void at_send_uplink(at_ctx_t *at_ctx, uplink_msg_t type);
-
-// static at_ctx_t g_at_context = {
-// 	.sidewalk_state = STATE_SIDEWALK_INIT,
-// 	.state = AT_STATE_INIT,
-// 	.link_status.time_sync_status = SID_STATUS_NO_TIME,
-// 	.at_conf.
-// };
 
 void app_event_send_sid_init()
 {
@@ -148,14 +137,45 @@ static void at_app_entry(void *ctx, void *unused, void *unused2)
 					break;
 				
 				case BUTTON_EVENT_SHORT:
-					//button_event_send_hello(application_ctx);
+					if(at_ctx->total_msg == 0){
+						LOG_INF("Immediate scan and uplink triggered...");
+						scan_timer_set_and_run(K_MSEC(5000));
+					} else {
+						LOG_INF("Uplink in progress. Try again later!");
+					}
 					break;
+				
 				case BUTTON_EVENT_LONG:
-					//button_event_set_battery(application_ctx);
+					LOG_INF("Switching workshop mode...");
+					at_event_send(EVENT_SWITCH_WS_MODE);
 					break;
-				// case BUTTON_EVENT_FACTORY_RESET:
-				// 	button_event_factory_reset(application_ctx);
-				// 	break;
+				
+				case EVENT_SWITCH_WS_MODE:
+					if(at_ctx->at_conf.workshop_mode==true) {
+						at_ctx->at_conf.sid_link_type = LORA_LM;
+						at_ctx->at_conf.loc_scan_mode = (loc_scan_t) GNSS_WIFI;
+						at_ctx->at_conf.workshop_mode = false;
+						LOG_INF("Workshop mode disabled.");
+						at_event_send(EVENT_SID_STOP);
+						scan_timer_set_and_run(K_MSEC(2000));
+
+					} else {
+						at_ctx->at_conf.sid_link_type = BLE_LM;
+						at_ctx->at_conf.loc_scan_mode = (loc_scan_t) WIFI;
+						at_ctx->at_conf.workshop_mode = true;
+						LOG_INF("Workshop mode enabled.");
+						at_event_send(EVENT_SID_STOP);
+						scan_timer_set_and_run(K_MSEC(2000));
+					}
+					LOG_INF("Restarting stack with new settings...");
+					break;
+
+				case EVENT_RADIO_SWITCH:
+					LOG_INF("Switching Sidewalk radios...");
+					at_event_send(EVENT_SID_STOP);
+					scan_timer_set_and_run(K_MSEC(2000));
+					break;
+
 				case EVENT_BLE_CONNECTION_REQUEST:
 					LOG_INF("Requesting BLE connection...");
 					err = sid_ble_bcn_connection_request(at_ctx->handle, true);
@@ -229,7 +249,6 @@ static void at_app_entry(void *ctx, void *unused, void *unused2)
 						LOG_ERR("sid_stop returned %d", err); 
 					}
 					k_msgq_purge(&at_thread_msgq);
-					// scan_timer_set_and_run(K_MSEC(30000));  //loadtest
 					break;
 
 				case EVENT_SID_START:
@@ -273,6 +292,7 @@ sid_error_t at_thread_init(void)
 		// .sid_link_type = LORA_LM,
 		.sid_link_type = BLE_LM,
 		.loc_scan_mode = (loc_scan_t) WIFI,
+		.gnss_scan_mode = (gnss_scan_mode_t) GNSS_AUTONOMOUS,
 		.motion_period = CONFIG_IN_MOTION_PER_M,
 		.scan_freq_motion = CONFIG_MOTION_SCAN_PER_S,
 		.motion_thres = 5,
