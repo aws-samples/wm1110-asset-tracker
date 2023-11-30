@@ -253,8 +253,8 @@ SHELL_STATIC_SUBCMD_SET_CREATE(
 );
 
 SHELL_STATIC_SUBCMD_SET_CREATE(asset_tracker,
-	SHELL_CMD_ARG(info, NULL, "Print Sidewalk Asset Tracker app info",	NULL, 1, 0),
-	SHELL_CMD_ARG(status, NULL, "Print device status",	NULL, 1, 0),
+	// SHELL_CMD_ARG(info, NULL, "Print Sidewalk Asset Tracker app info",	NULL, 1, 0),
+	// SHELL_CMD_ARG(status, NULL, "Print device status",	NULL, 1, 0),
 	SHELL_CMD_ARG(config, &sub_config, "Device config menu",	NULL, 1, 0),
 	// SHELL_CMD_ARG(scan_wifi, NULL, "Scan Wifi and print results",	NULL, 1, 0),
 	// SHELL_CMD_ARG(scan_gnss, NULL, "Scan GNSS and print results",	NULL, 1, 0),

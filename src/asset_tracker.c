@@ -139,7 +139,7 @@ static void at_app_entry(void *ctx, void *unused, void *unused2)
 				case BUTTON_EVENT_SHORT:
 					if(at_ctx->total_msg == 0){
 						LOG_INF("Immediate scan and uplink triggered...");
-						scan_timer_set_and_run(K_MSEC(2000));
+						scan_timer_set_and_run(K_MSEC(5000));
 					} else {
 						LOG_INF("Uplink in progress. Try again later!");
 					}

@@ -26,14 +26,14 @@ config LONG_PRESS_PER_MS
 config IN_MOTION_PER_M
         prompt "In motion period (m)"
         int
-        default 5
+        default 15
         help
                Time in seconds device will stay in the motion state from last motion event.
 
 config MOTION_SCAN_PER_S
         prompt "Motion uplink period (s)"
         int
-        default 60
+        default 240
         help
                Delay in seconds between scanning and uplinking when the device is in motion.
 

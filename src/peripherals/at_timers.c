@@ -32,7 +32,7 @@ static void scan_timer_cb(struct k_timer *timer_id)
 	at_event_send(EVENT_SCAN_LOC);
 
 	//reload scan timer
-    scan_timer_set_and_run(K_MSEC(300000));  //5min uplink
+    scan_timer_set_and_run(K_SECONDS(CONFIG_MOTION_SCAN_PER_S)); 
 
 }
 
