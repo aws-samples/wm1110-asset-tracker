@@ -69,7 +69,7 @@ Detailed steps for programming and provisioning the device with UF2 images can b
 <details>
     <summary><b>Building the application in a AWS Cloud9 environment </b></summary>
 
-From an appropriately sized C9/EC2 instance (ex c5.xlarge) using Ubuntu 22.04, execute the following to install - 
+- From an appropriately sized C9/EC2 instance (ex c5.xlarge) using Ubuntu 22.04, execute the following to install - 
     - nRF Connect SDK v2.5.0 (in ~/ncs)
     - Zephyr (in ~/ncs/zephyr)
     - west (in ~/.local/bin)
