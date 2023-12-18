@@ -47,13 +47,14 @@ Detailed steps for programming and provisioning the device with UF2 images can b
 
    - STEP 4: Clone the asset tracker application firmware to the samples dir in the sidewalk sdk
        ```bash
-       git clone https://github.com/aws-samples/wm1110-asset-tracker sidewalk/samples/wm1110-asset-tracker
+       git clone --recurse-submodules https://github.com/aws-samples/wm1110-asset-tracker sidewalk/samples/wm1110-asset-tracker
        ```
 
-   - STEP 5: Apply the Semtech LR1110 patch from the root of the sidewalk sdk dir
+   - STEP 5: Apply the Semtech LR1110 patch and copy in the libraries from the root of the sidewalk sdk dir
        ```bash
        cd sidewalk/
        patch -p1 < samples/wm1110-asset-tracker/SWDR006/nRF52840_LR11xx_driver_v010000.diff
+       cp samples/wm1110-asset-tracker/SWDR006/lib*.a lib/lora_fsk/
        ```  
 
    - STEP 6: Build the WM1110 application firmware
@@ -65,91 +66,93 @@ Detailed steps for programming and provisioning the device with UF2 images can b
    The UF2 image for the application will be found here:  `build/zephyr/AssetTrackerDeviceApp.uf2`
 </details>
 
-
 <details>
     <summary><b>Building the application in a AWS Cloud9 environment </b></summary>
 
-    From an appropriately sized C9/EC2 instance (ex c5.xlarge) using Ubuntu 22.04, execute the following to install:
+From an appropriately sized C9/EC2 instance (ex c5.xlarge) using Ubuntu 22.04, execute the following to install - 
+    - nRF Connect SDK v2.5.0 (in ~/ncs)
+    - Zephyr (in ~/ncs/zephyr)
+    - west (in ~/.local/bin)
+    - Zephyr SDK v0.16.4 (in ~/zephyr-sdk-0.16.4)
+    - Sidewalk SDK v1.15.0 (in ~/ncs/sidewalk)
 
-      - nRF Connect SDK v2.5.0 (in ~/ncs)
-      - Zephyr (in ~/ncs/zephyr)
-      - west (in ~/.local/bin)
-      - Zephyr SDK v0.16.4 (in ~/zephyr-sdk-0.16.4)
-      - Sidewalk SDK v1.15.0 (in ~/ncs/sidewalk)
+**NOTE:** The build environment requires at least 20GB of storage.  For a newly created C9 env (10GB default), you will need to resize the EBS volume to 20GB or larger by following [these instructions](https://docs.aws.amazon.com/cloud9/latest/user-guide/move-environment.html#move-environment-resize). 
 
-    ```bash
-    cd ~
-    # install nRF Connect SDK
-    wget https://apt.kitware.com/kitware-archive.sh
-    sudo bash kitware-archive.sh
-    rm kitware-archive.sh
-    sudo apt install --no-install-recommends git cmake ninja-build gperf ccache dfu-util device-tree-compiler wget python3-dev python3-pip python3-setuptools python3-tk python3-wheel xz-utils file make gcc gcc-multilib g++-multilib libsdl2-dev libmagic1
-    ```
+```bash
+cd ~
+# install nRF Connect SDK
+wget https://apt.kitware.com/kitware-archive.sh
+sudo bash kitware-archive.sh
+rm kitware-archive.sh
+sudo apt install --no-install-recommends git cmake ninja-build gperf ccache dfu-util device-tree-compiler wget python3-dev python3-pip python3-setuptools python3-tk python3-wheel xz-utils file make gcc gcc-multilib g++-multilib libsdl2-dev libmagic1
+```
 
-    ```bash
-    # install west
-    pip3 install --user west
-    echo 'export PATH=~/.local/bin:"$PATH"' >> ~/.bashrc
-    source ~/.bashrc
-    ```
+```bash
+# install west
+pip3 install --user west
+echo 'export PATH=~/.local/bin:"$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
 
-    ```bash
-    # get the nRF Connect SDK
-    mkdir -p ~/ncs
-    cd ~/ncs
-    west init -m https://github.com/nrfconnect/sdk-nrf --mr v2.5.0
-    west update
-    west zephyr-export
-    ```
+```bash
+# get the nRF Connect SDK
+mkdir -p ~/ncs
+cd ~/ncs
+west init -m https://github.com/nrfconnect/sdk-nrf --mr v2.5.0
+west update
+west zephyr-export
+```
 
-    ```bash
-    # additional dependencies
-    pip3 install --user -r zephyr/scripts/requirements.txt
-    pip3 install --user -r nrf/scripts/requirements.txt
-    pip3 install --user -r bootloader/mcuboot/scripts/requirements.txt
-    ```
+```bash
+# additional dependencies
+pip3 install --user -r zephyr/scripts/requirements.txt
+pip3 install --user -r nrf/scripts/requirements.txt
+pip3 install --user -r bootloader/mcuboot/scripts/requirements.txt
+```
 
-    ```bash
-    # install zephyr SDK
-    cd ~
-    wget https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.4/zephyr-sdk-0.16.4_linux-x86_64.tar.xz
-    wget -O - https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.1/sha256.sum | shasum --check --ignore-missing
-    tar xvf zephyr-sdk-0.16.4_linux-x86_64.tar.xz
-    rm zephyr-sdk-0.16.4_linux-x86_64.tar.xz
-    cd ~/zephyr-sdk-0.16.4
-    ./setup.sh
-    ```
+```bash
+# install zephyr SDK
+cd ~
+wget https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.4/zephyr-sdk-0.16.4_linux-x86_64.tar.xz
+wget -O - https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.4/sha256.sum | shasum --check --ignore-missing
+tar xvf zephyr-sdk-0.16.4_linux-x86_64.tar.xz
+rm zephyr-sdk-0.16.4_linux-x86_64.tar.xz
+cd ~/zephyr-sdk-0.16.4
+./setup.sh
+```
 
-    ```bash
-    # enable the Sidewalk SDK and install the requirements
-    west config manifest.group-filter "+sidewalk"
-    west update
+```bash
+# enable the Sidewalk SDK and install the requirements
+cd ~/ncs
+west config manifest.group-filter "+sidewalk"
+west update
 
-    pip install -r sidewalk/requirements.txt
-    ```
+pip install -r sidewalk/requirements.txt
+```
 
-    ```bash
-    # clone the wm1110-asset-tracker repo
-    cd ~/
-    git clone https://github.com/aws-samples/wm1110-asset-tracker
-    ```
+```bash
+# clone the wm1110-asset-tracker repo into the sidewalk samples dir
+cd ~/ncs
+git clone --recurse-submodules https://github.com/aws-samples/wm1110-asset-tracker sidewalk/samples/wm1110-asset-tracker
+```
 
-    ```bash
-    # apply the LR1110 patch to the sidewalk SDK
-    cd ~/ncs/sidewalk
-    patch -p1 < ~/wm1110-asset-tracker/SWDR006/nRF52840_LR11xx_driver_v010000.diff
-    ```
+```bash
+# apply the LR1110 patch to the sidewalk SDK and copy in the LR11xx libraries
+cd ~/ncs/sidewalk
+patch -p1 < samples/wm1110-asset-tracker/SWDR006/nRF52840_LR11xx_driver_v010000.diff
+cp samples/wm1110-asset-tracker/SWDR006/lib*.a lib/lora_fsk/
+```
 
-    ```bash
-    # build it
-    cd ~/wm1110-asset-tracker/
-    export ZEPHYR_TOOLCHAIN_VARIANT=zephyr
-    export ZEPHYR_BASE=~/ncs/zephyr
-    export ZEPHYR_SDK_INSTALL_DIR=~/zephyr-sdk-0.16.4
-    west build -b wio_tracker_1110 -- -DRADIO=LR1110 -DBOARD_ROOT=.
-    ```
+```bash
+# build it
+cd ~/ncs/sidewalk/samples/wm1110-asset-tracker
+export ZEPHYR_TOOLCHAIN_VARIANT=zephyr
+export ZEPHYR_BASE=~/ncs/zephyr
+export ZEPHYR_SDK_INSTALL_DIR=~/zephyr-sdk-0.16.4
+west build -b wio_tracker_1110 -- -DRADIO=LR1110 -DBOARD_ROOT=.
+```
 
-    The UF2 image for the application will be found here:  `build/zephyr/AssetTrackerDeviceApp.uf2`
+The UF2 image for the application will be found here:  `~/ncs/sidewalk/samples/wm1110-asset-tracker/build/zephyr/AssetTrackerDeviceApp.uf2`
 </details>
 
 ## Security
