@@ -11,7 +11,7 @@ intelhex = "^2.3.0"
 
 [tool.poetry.dev-dependencies]
 coverage = "^6.1.2"
-black = "^21.11b1"
+black = "^24.3"
 flake8 = "^4.0.1"
 mypy = "^0.982"
 types-PyYAML = "^6.0.12"
