@@ -116,30 +116,35 @@ int smtc_wifi_get_results(void *drv_ctx, wifi_scan_all_result_t* wifi_results)
 		lr11xx_wifi_parse_channel_info( local_basic_result->channel_info_byte, &channel, &rssi_validity,
 							&mac_origin_estimation );
 
+		// Filter out Mobile APs
 		if( mac_origin_estimation != LR11XX_WIFI_ORIGIN_BEACON_MOBILE_AP )
 		{
-			wifi_results->results[result_index].channel = channel;
-
-			wifi_results->results[result_index].type =
-				lr11xx_wifi_extract_signal_type_from_data_rate_info( local_basic_result->data_rate_info_byte );
-
-			memcpy( wifi_results->results[result_index].mac_address, local_basic_result->mac_address,
-					LR11XX_WIFI_MAC_ADDRESS_LENGTH );
-
-			wifi_results->results[result_index].rssi = local_basic_result->rssi;
-			{
-				const uint8_t *mac = local_basic_result->mac_address;
-				LOG_INF("%u) ch%u %02x:%02x:%02x:%02x:%02x:%02x %ddBm", index, channel, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], local_basic_result->rssi);
-			}
-			wifi_results->nbr_results++;
-			result_index++;
-		} else{
-			LOG_DBG("%u) mobile-AP", index);
+			// Filter out locally administered APs where b1=1 of first byte of MAC... only universally administered addresses are in the HERE DB.
+        	if ((local_basic_result->mac_address[0] & 0x02) == 0) {
+	            // Second bit is not set, add the result
+				wifi_results->results[result_index].channel = channel;
+	
+				wifi_results->results[result_index].type =
+					lr11xx_wifi_extract_signal_type_from_data_rate_info( local_basic_result->data_rate_info_byte );
+	
+				memcpy( wifi_results->results[result_index].mac_address, local_basic_result->mac_address,
+						LR11XX_WIFI_MAC_ADDRESS_LENGTH );
+	
+				wifi_results->results[result_index].rssi = local_basic_result->rssi;
+				{
+					const uint8_t *mac = local_basic_result->mac_address;
+					LOG_INF("%u) ch%u %02x:%02x:%02x:%02x:%02x:%02x %ddBm", index, channel, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], local_basic_result->rssi);
+				}
+				wifi_results->nbr_results++;
+				result_index++;
+        	} else {
+            LOG_DBG("%u) locally administered MAC found, skipped", index);
+        	}
+		} else {
+			LOG_DBG("%u) mobile-AP found, skipped", index);
 			//do not add mobile-aps to the results
 		}
-
 	}
-
 	return 0;
 }
 
