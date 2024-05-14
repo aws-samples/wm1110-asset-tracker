@@ -19,7 +19,7 @@ static at_ctx_t *atcontext;
 /**
  * @brief Minimal number of detected access point in a scan result to consider the scan valid
  */
-#define WIFI_SCAN_NB_AP_MIN ( 2 )
+#define WIFI_SCAN_NB_AP_MIN ( 1 )
 
 /*!
  * @brief Structure representing a single scan result
@@ -44,12 +44,12 @@ typedef struct
 } wifi_scan_all_result_t;
 
 wifi_configuration_scan_t wifi_configuration = {
-	.signal_type			= LR11XX_WIFI_TYPE_SCAN_B,
+	.signal_type			= LR11XX_WIFI_TYPE_SCAN_B_G_N,
 	.base.channel_mask		= 0x0421,
 	.scan_mode				= LR11XX_WIFI_SCAN_MODE_BEACON,
 	.base.max_result		= WIFI_MAX_RESULTS,
-	.nb_scan_per_channel	= 10,
-	.timeout_per_scan		= 90,
+	.nb_scan_per_channel	= 6,
+	.timeout_per_scan		= 105,
 	.abort_on_timeout		= true,
 };
 
@@ -180,6 +180,7 @@ void on_wifi_scan_done(void *arg)
 {
 	void *drv_ctx = lr11xx_get_drv_ctx();
 	memset( &wifi_results, 0, sizeof wifi_results );
+	LOG_INF("Scan done!");
 	int ret = smtc_wifi_get_results(drv_ctx, &wifi_results);
 	if (ret < 0) {
 		LOG_ERR("smtc_wifi_get_results() fail");
@@ -254,12 +255,12 @@ int scan_wifi(at_ctx_t *app_ctx)
 		);
 	#else
 		lr11xx_status_t status = lr11xx_wifi_scan(drv_ctx,
-			LR11XX_WIFI_TYPE_SCAN_B, /* const lr11xx_wifi_signal_type_scan_t signal_type */
+			LR11XX_WIFI_TYPE_SCAN_B_G_N, /* const lr11xx_wifi_signal_type_scan_t signal_type */
 			0x0421, /* const lr11xx_wifi_channel_mask_t channels */
 			LR11XX_WIFI_SCAN_MODE_BEACON, /* const lr11xx_wifi_mode_t scan_mode */
-			4, /* const uint8_t max_results */
-			10, /* const uint8_t nb_scan_per_channel */
-			90, /* const uint16_t timeout_in_ms */
+			WIFI_MAX_RESULTS, /* const uint8_t max_results */
+			6, /* const uint8_t nb_scan_per_channel */
+			105, /* const uint16_t timeout_in_ms */
 			true /* const bool abort_on_timeout */
 		);
 	#endif

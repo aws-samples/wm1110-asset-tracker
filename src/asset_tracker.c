@@ -227,17 +227,25 @@ static void at_app_entry(void *ctx, void *unused, void *unused2)
 					LOG_INF("Scanning location...");
 					switch(scan_type) {
 						case WIFI:
-							scan_wifi(at_ctx);
+							at_event_send(EVENT_SCAN_WIFI);
 							break;
 						case GNSS:
 						case GNSS_WIFI:
-							start_gnss_scan(at_ctx);
+							at_event_send(EVENT_SCAN_GNSS);  //WIFI scan event triggered in on_gnss_scan_done
 							break;
 						default:
 							LOG_ERR("Invalid location scan type");
 					}
 					break;
-
+					
+				case EVENT_SCAN_WIFI:
+					scan_wifi(at_ctx);
+					break;
+					
+				case EVENT_SCAN_GNSS:
+					start_gnss_scan(at_ctx);
+					break;
+				
 				case EVENT_SID_STOP:
 					LOG_INF("Going to sleep...");
 					err = sid_process(at_ctx->handle);

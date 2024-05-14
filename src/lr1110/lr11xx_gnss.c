@@ -106,7 +106,8 @@ void on_gnss_scan_done(void *arg)
 		if(atcontext->at_conf.loc_scan_mode == GNSS_WIFI) {
 			//GNSS_WIFI scan mode. Try a WIFI scan if not enough sats were detected.
 			LOG_INF("Not enough sats detected - nb:%u < %u - Performing WIFI scan...", n_sv_detected, MIN_NB_SV);
-			scan_wifi(atcontext);
+			// scan_wifi(atcontext);
+			at_event_send(EVENT_SCAN_WIFI);
 		} else {
 			//GNSS only scanning mode.  Send the NOLOC message if not enough sats were detected.
 			LOG_INF("Not enough sats detected - nb:%u < %u - Sending NOLOC message...", n_sv_detected, MIN_NB_SV);
