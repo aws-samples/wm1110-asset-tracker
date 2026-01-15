@@ -1,4 +1,4 @@
-identifier: wio_tracker_1110
+identifier: wio_tracker_1110/nrf52840
 name: Wio-Tracker-1110
 type: mcu
 arch: arm
@@ -21,3 +21,4 @@ supported:
   - usb_device
   - watchdog
   - netif:openthread
+vendor: seeed

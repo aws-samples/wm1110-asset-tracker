@@ -7,7 +7,6 @@ project(wm1110-asset-tracker)
 FILE(GLOB app_sources
     src/*.c
     src/sidewalk/*.c
-    src/lr1110/*.c
     src/peripherals/*.c
 )
 

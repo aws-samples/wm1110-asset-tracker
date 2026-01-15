@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2017 Linaro Limited
+ * Copyright (c) 2024 Seeed Studio
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -8,8 +9,9 @@
 #include <nordic/nrf52840_qiaa.dtsi>
 #include <zephyr/dt-bindings/gpio/gpio.h>
 #include <zephyr/dt-bindings/led/led.h>
-#include "wio_tracker_1110-pinctrl.dtsi"
+#include "wio_tracker_1110_nrf52840-pinctrl.dtsi"
 #include <zephyr/dt-bindings/i2c/i2c.h>
+#include <zephyr/dt-bindings/lora_lbm/lr11xx.h>
 
 / {
 	model = "Seeed Wio Tracker 1110";
@@ -18,14 +20,12 @@
 	chosen {
 		zephyr,console = &usb_cdc_acm_uart;
 		zephyr,shell-uart = &usb_cdc_acm_uart;
-		// zephyr,uart-mcumgr = &usb_cdc_acm_uart;
-		// zephyr,bt-mon-uart = &usb_cdc_acm_uart;
-		// zephyr,bt-c2h-uart = &usb_cdc_acm_uart;
 		nordic,pm-ext-flash = &p25q32sh;
 		zephyr,sram = &sram0;
 		zephyr,flash = &flash0;
 		zephyr,code-partition = &slot0_partition;
 		zephyr,ieee802154 = &ieee802154;
+		zephyr,lora-transceiver = &lora_lr1110;
 	};
 
 	leds {
@@ -34,8 +34,6 @@
 			gpios = <&gpio0 6 GPIO_ACTIVE_LOW>;
 			label = "Blue LED";
 		};
-		/* The led `GROVE` is not controlled by MCU, 
-		it's on when the power for Grove connectors are gated on via P1.01. */
 	};
 
 	buttons {
@@ -43,6 +41,7 @@
 		button0: button_0 {
 			gpios = <&gpio1 2 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
 			label = "Push button switch 0";
+			zephyr,code = <11>;
 		};
 	};
 
@@ -51,8 +50,8 @@
 		#gpio-cells = <2>;
 		gpio-map-mask = <0xffffffff 0xffffffc0>;
 		gpio-map-pass-thru = <0 0x3f>;
-		gpio-map = <0 0 &gpio0 13 0>,	/* D13 */
-				<1 0 &gpio0 14 0>;		/* D14 */
+		gpio-map = <0 0 &gpio0 13 0>,
+				<1 0 &gpio0 14 0>;
 	};
 
 	grove_digital1: grove_digital1 {
@@ -60,8 +59,8 @@
 		#gpio-cells = <2>;
 		gpio-map-mask = <0xffffffff 0xffffffc0>;
 		gpio-map-pass-thru = <0 0x3f>;
-		gpio-map = <0 0 &gpio0 15 0>,	/* D15 */
-				<1 0 &gpio0 16 0>;		/* D16 */
+		gpio-map = <0 0 &gpio0 15 0>,
+				<1 0 &gpio0 16 0>;
 	};
 
 	grove_digital2: grove_digital2 {
@@ -69,78 +68,35 @@
 		#gpio-cells = <2>;
 		gpio-map-mask = <0xffffffff 0xffffffc0>;
 		gpio-map-pass-thru = <0 0x3f>;
-		gpio-map = <0 0 &gpio0 30 0>,	/* D30 */
-				<1 0 &gpio0 31 0>;		/* D31 */
+		gpio-map = <0 0 &gpio0 30 0>,
+				<1 0 &gpio0 31 0>;
 	};
 
-	/* use Analog header as digital pins */
 	grove_digital_analog: grove_digital_analog {
 		compatible = "grove-header";
 		#gpio-cells = <2>;
 		gpio-map-mask = <0xffffffff 0xffffffc0>;
 		gpio-map-pass-thru = <0 0x3f>;
-		gpio-map = <0 0 &gpio0 28 0>,	/* D28 */
-				<1 0 &gpio0 29 0>;		/* D29 */
+		gpio-map = <0 0 &gpio0 28 0>,
+				<1 0 &gpio0 29 0>;
 	};
 
-	/* use UART header as digital pins */
 	grove_digital_uart: grove_digital_uart {
 		compatible = "grove-header";
 		#gpio-cells = <2>;
 		gpio-map-mask = <0xffffffff 0xffffffc0>;
 		gpio-map-pass-thru = <0 0x3f>;
-		gpio-map = <0 0 &gpio0 24 0>,	/* D24 */
-				<1 0 &gpio0 25 0>;		/* D25 */
+		gpio-map = <0 0 &gpio0 24 0>,
+				<1 0 &gpio0 25 0>;
 	};
 
-	/* use I2C header as digital pins */
 	grove_digital_i2c: grove_digital_i2c {
 		compatible = "grove-header";
 		#gpio-cells = <2>;
 		gpio-map-mask = <0xffffffff 0xffffffc0>;
 		gpio-map-pass-thru = <0 0x3f>;
-		gpio-map = <0 0 &gpio0 4 0>,	/* D4 */
-				<1 0 &gpio0 5 0>;		/* D5 */
-	};
-
-	semtech_gpios {
-		compatible = "gpio-keys";
-		semtech_sx1262_cs: cs {
-			gpios = <&gpio1 12 GPIO_ACTIVE_LOW>;
-			label = "semtech_sx1262 CS";
-		};
-		semtech_sx1262_reset_gpios: reset {
-			gpios = <&gpio1 10 GPIO_ACTIVE_LOW>;
-			label = "semtech_sx1262 Reset";
-		};
-		semtech_sx1262_busy_gpios: busy {
-			gpios = <&gpio1 11 GPIO_ACTIVE_HIGH>;
-			label = "semtech_sx1262 Busy";
-		};
-		/*semtech_sx1262_antenna_enable_gpios: antena_enable {
-			gpios = <&gpio1 0xa GPIO_ACTIVE_HIGH>;
-			label = "semtech_sx1262 Antena Enable";
-		};*/
-		semtech_sx1262_dio1_gpios: dio1 {
-			gpios = <&gpio0 2 GPIO_ACTIVE_HIGH>;
-			label = "semtech_sx1262 DIO1";
-		};
-		radio_led_tx: led_tx {
-			gpios = <&gpio0 6 GPIO_ACTIVE_LOW>;
-			label = "red tx LED";
-		};
-		/*radio_led_rx: led_rx {
-			gpios = <&gpio0 0x1f GPIO_ACTIVE_HIGH>;
-			label = "green rx LED";
-		};
-		radio_led_sniff: led_sniff {
-			gpios = <&gpio1 0x5 GPIO_ACTIVE_HIGH>;
-			label = "yellow LED";
-		};*/
-		radio_gnss_lna: gnss_lna {
-			gpios = <&gpio1 5 GPIO_ACTIVE_HIGH>;
-			label = "gnss lna enable";
-		};
+		gpio-map = <0 0 &gpio0 4 0>,
+				<1 0 &gpio0 5 0>;
 	};
 
 	/* Regulators */
@@ -149,8 +105,7 @@
 		regulator-name = "grove_headers_power_3v3_enable";
 		enable-gpios = <&gpio1 1 GPIO_ACTIVE_HIGH>;
 		regulator-boot-on;
-		startup-delay-us=<20000>;
-		//delay needed to allow lis3dh to power up before driver init
+		startup-delay-us = <20000>;
 	};
 
 	/* These aliases are provided for compatibility with samples */
@@ -161,6 +116,7 @@
 		watchdog0 = &wdt0;
 		spi-flash0 = &p25q32sh;
 		accel0 = &lis3dh;
+		lora-transceiver = &lora_lr1110;
 	};
 };
 
@@ -200,23 +156,20 @@ grove_i2c: &i2c1 {
 	sht41: sht4x@44 {
 		compatible = "sensirion,sht4x";
 		reg = <0x44>;
-		repeatability = <2>;	/* 2 = high -> 8.2 ms */
-		vin-supply = < &B3V3_pwr >;
+		repeatability = <2>;
+		vin-supply = <&B3V3_pwr>;
 	};
 
 	lis3dh: lis3dh@19 {
 		compatible = "st,lis3dh", "st,lis2dh";
 		reg = <0x19>;
-		irq-gpios = <&gpio1 3 GPIO_ACTIVE_HIGH>,	/* P1.03 = INT1 */
-				<&gpio1 4 GPIO_ACTIVE_HIGH>;		/* P1.04 = INT2 */
-		// anym-on-int1;
-		// disconnect-sdo-sa0-pull-up;
-		vin-supply = < &B3V3_pwr >;
+		irq-gpios = <&gpio1 3 GPIO_ACTIVE_HIGH>,
+				<&gpio1 4 GPIO_ACTIVE_HIGH>;
+		vin-supply = <&B3V3_pwr>;
 	};
 };
 
 &pwm0 {
-	/* assigned to one of the trace pins temporarily */
 	status = "okay";
 	pinctrl-0 = <&pwm0_default>;
 	pinctrl-1 = <&pwm0_sleep>;
@@ -224,13 +177,149 @@ grove_i2c: &i2c1 {
 };
 
 sid_semtech: &spi0 {
-	/* inside the WM1110 module */
 	compatible = "nordic,nrf-spi";
 	status = "okay";
 	pinctrl-0 = <&spi0_default>;
 	pinctrl-1 = <&spi0_sleep>;
 	pinctrl-names = "default", "sleep";
 	clock-frequency = <DT_FREQ_M(8)>;
+	cs-gpios = <&gpio1 12 GPIO_ACTIVE_LOW>;
+
+	lora_semtech_lr11xxmb1xxs: lora_lr1110: lora@0 {
+		compatible = "semtech,lr1110";
+		reg = <0>;
+		spi-max-frequency = <DT_FREQ_M(8)>;
+
+		reset-gpios = <&gpio1 10 GPIO_ACTIVE_LOW>;
+		busy-gpios = <&gpio1 11 GPIO_ACTIVE_HIGH>;
+		event-gpios = <&gpio0 2 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>;
+		gnss-lna-gpios = <&gpio1 5 GPIO_ACTIVE_HIGH>;
+
+		lf-tx-path = <LR11XX_TX_PATH_LF_LP_HP>;
+		lf-clk = <LR11XX_LFCLK_XTAL>;
+		reg-mode = <LR11XX_REG_MODE_DCDC>;
+
+		rf-sw-enable = <(LR11XX_DIO5 | LR11XX_DIO6 | LR11XX_DIO7)>;
+		rf-sw-rx-mode = <LR11XX_DIO5>;
+		rf-sw-tx-mode = <(LR11XX_DIO5 | LR11XX_DIO6)>;
+		rf-sw-tx-hp-mode = <LR11XX_DIO6>;
+		rf-sw-gnss-mode = <LR11XX_DIO7>;
+
+		tcxo-voltage = <LR11XX_TCXO_SUPPLY_1_8V>;
+		tcxo-wakeup-time = <5>;
+
+		tx-power-cfg-lf-lp =
+			< (-15) 0x00 0x00>,
+			< (-14) 0x00 0x00>,
+			< (-13) 0x00 0x00>,
+			< (-12) 0x00 0x00>,
+			< (-11) 0x00 0x00>,
+			<  (-9) 0x00 0x00>,
+			<  (-8) 0x00 0x00>,
+			<  (-7) 0x00 0x00>,
+			<  (-6) 0x00 0x00>,
+			<  (-5) 0x00 0x00>,
+			<  (-4) 0x00 0x00>,
+			<  (-3) 0x00 0x00>,
+			<  (-2) 0x00 0x00>,
+			<  (-1) 0x00 0x00>,
+			<  ( 0) 0x00 0x00>,
+			<  ( 1) 0x00 0x00>,
+			<  ( 2) 0x00 0x00>,
+			<  ( 3) 0x00 0x00>,
+			<  ( 3) 0x01 0x00>,
+			<  ( 4) 0x01 0x00>,
+			<  ( 7) 0x00 0x00>,
+			<  ( 8) 0x00 0x00>,
+			<  ( 9) 0x00 0x00>,
+			< ( 10) 0x00 0x00>,
+			< ( 12) 0x00 0x00>,
+			< ( 13) 0x00 0x00>,
+			< ( 14) 0x00 0x00>,
+			< ( 13) 0x01 0x00>,
+			< ( 13) 0x02 0x00>,
+			< ( 14) 0x02 0x00>,
+			< ( 14) 0x03 0x00>,
+			< ( 14) 0x04 0x00>,
+			< ( 14) 0x07 0x00>;
+
+		tx-power-cfg-lf-hp =
+			< (  9) 0x00 0x00>,
+			< ( 10) 0x00 0x00>,
+			< ( 11) 0x00 0x00>,
+			< ( 12) 0x00 0x00>,
+			< ( 13) 0x00 0x00>,
+			< ( 13) 0x01 0x00>,
+			< ( 13) 0x02 0x00>,
+			< ( 17) 0x02 0x00>,
+			< ( 14) 0x04 0x00>,
+			< ( 12) 0x00 0x01>,
+			< ( 13) 0x00 0x01>,
+			< ( 13) 0x01 0x01>,
+			< ( 13) 0x02 0x01>,
+			< ( 15) 0x00 0x02>,
+			< ( 15) 0x04 0x01>,
+			< ( 14) 0x02 0x02>,
+			< ( 14) 0x01 0x03>,
+			< ( 17) 0x04 0x02>,
+			< ( 22) 0x00 0x01>,
+			< ( 22) 0x01 0x01>,
+			< ( 22) 0x02 0x01>,
+			< ( 22) 0x03 0x01>,
+			< ( 22) 0x00 0x03>,
+			< ( 22) 0x01 0x03>,
+			< ( 22) 0x04 0x02>,
+			< ( 22) 0x01 0x04>,
+			< ( 22) 0x02 0x04>,
+			< ( 22) 0x01 0x06>,
+			< ( 22) 0x03 0x05>,
+			< ( 22) 0x03 0x07>,
+			< ( 22) 0x04 0x06>,
+			< ( 22) 0x04 0x07>;
+
+		tx-power-cfg-hf =
+			< (-18) 0x04 0x00>,
+			< (-18) 0x04 0x00>,
+			< (-17) 0x04 0x00>,
+			< (-16) 0x04 0x00>,
+			< (-15) 0x04 0x00>,
+			< (-14) 0x04 0x00>,
+			< (-14) 0x04 0x00>,
+			< (-12) 0x04 0x00>,
+			< (-10) 0x04 0x00>,
+			< ( -9) 0x04 0x00>,
+			< ( -8) 0x04 0x00>,
+			< ( -7) 0x04 0x00>,
+			< ( -6) 0x04 0x00>,
+			< ( -5) 0x04 0x00>,
+			< ( -4) 0x04 0x00>,
+			< ( -3) 0x04 0x00>,
+			< ( -2) 0x03 0x00>,
+			< ( -1) 0x04 0x00>,
+			< (  0) 0x04 0x00>,
+			< (  1) 0x00 0x00>,
+			< (  2) 0x00 0x00>,
+			< (  4) 0x04 0x00>,
+			< (  5) 0x04 0x00>,
+			< (  6) 0x04 0x00>,
+			< (  7) 0x04 0x00>,
+			< (  8) 0x04 0x00>,
+			< (  9) 0x04 0x00>,
+			< ( 10) 0x04 0x00>,
+			< ( 11) 0x04 0x00>,
+			< ( 12) 0x03 0x00>,
+			< ( 13) 0x04 0x00>,
+			< ( 13) 0x00 0x00>;
+
+		rssi-calibration-lf-offset = <0>;
+		rssi-calibration-lf-tune = <12 12 14 0 1 3 4 4 3 6 6 6 6 6 6 6 6>;
+
+		rssi-calibration-mf-offset = <0>;
+		rssi-calibration-mf-tune = <2 2 2 3 3 4 5 4 4 6 5 5 6 6 6 7 6>;
+
+		rssi-calibration-hf-offset = <2030>;
+		rssi-calibration-hf-tune = <6 7 6 4 3 4 14 12 14 12 12 12 12 8 8 9 9>;
+	};
 };
 
 &qspi {
@@ -261,7 +350,6 @@ sid_semtech: &spi0 {
 };
 
 &flash0 {
-
 	partitions {
 		compatible = "fixed-partitions";
 		#address-cells = <1>;
@@ -274,27 +362,32 @@ sid_semtech: &spi0 {
 
 		slot0_partition: partition@1000 {
 			label = "code";
-			reg = <0x00001000 0x00d0000>;
+			reg = <0x00001000 0x000cf000>;
 		};
 
 		mfg_storage: partition@d0000 {
 			label = "mfg_storage";
-			reg = <0x000d0000 0x0001000>;
+			reg = <0x000d0000 0x00001000>;
 		};
 
 		sidewalk_storage: partition@d1000 {
 			label = "sidewalk_storage";
-			reg = <0x000d1000 0x0001000>;
+			reg = <0x000d1000 0x00001000>;
+		};
+
+		storage_partition: partition@d2000 {
+			label = "storage";
+			reg = <0x000d2000 0x00010000>;
+		};
+
+		hw_unique_key_partition: partition@f3000 {
+			label = "hw_unique_key";
+			reg = <0x000f3000 0x00001000>;
 		};
 
 		bootloader_partition: partition@f4000 {
 			label = "bootloader";
 			reg = <0x000f4000 0x00008000>;
-		};
-
-		storage_partition: partition@fc000 {
-			label = "nvs";
-			reg = <0x00fc000 0x00002000>;
 		};
 
 		bootloader_mbr_params_partition: partition@fe000 {
@@ -306,7 +399,6 @@ sid_semtech: &spi0 {
 			label = "bootloader_settings";
 			reg = <0x000ff000 0x00001000>;
 		};
-
 	};
 };
 

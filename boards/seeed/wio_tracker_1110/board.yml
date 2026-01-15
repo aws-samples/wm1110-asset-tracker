@@ -1,0 +1,5 @@
+board:
+  name: wio_tracker_1110
+  vendor: seeed
+  socs:
+    - name: nrf52840

@@ -4,7 +4,7 @@ Config:
     HARDWARE_PLATFORM: NORDIC  # Available values: NORDIC, TI, SILABS or ALL
     MFG_ADDRESS: "0xd0000" # mfg page location in device flash 
 Outputs:
-    DEVICE_PROFILE_ID: null
+    DEVICE_PROFILE_ID: 8a0285d4-8ed6-4119-abf8-716207151e8b
 _Paths:
     PROVISION_SCRIPT_DIR: tools/provision
 

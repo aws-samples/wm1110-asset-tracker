@@ -1,1 +1,5 @@
 /build*/
+*__pycache__*
+.venv/
+AssetTracker*.uf2
+utils/AssetTracker*
