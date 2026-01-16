@@ -28,8 +28,10 @@ static void scan_timer_cb(struct k_timer *timer_id)
 
 	//push sensor scan event
 	at_event_send(EVENT_SCAN_SENSORS);
-	//push location scan event
-	at_event_send(EVENT_SCAN_LOC);
+	
+	// Location scan will be triggered after BLE connection is established
+	// via EVENT_BLE_CONNECTION_REQUEST flow, or directly if using LoRa
+	at_event_send(EVENT_BLE_CONNECTION_REQUEST);
 
 	//reload scan timer
     scan_timer_set_and_run(K_SECONDS(CONFIG_MOTION_SCAN_PER_S)); 

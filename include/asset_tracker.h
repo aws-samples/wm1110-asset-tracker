@@ -82,6 +82,7 @@ typedef struct at_context {
 	enum at_sidewalk_state sidewalk_state;
 	struct link_status link_status;
 	bool sidewalk_registered;
+	bool stack_started;
 	enum at_state state;
 	bool connection_request;
 	bool motion;

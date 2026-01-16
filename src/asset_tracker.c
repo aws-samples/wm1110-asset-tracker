@@ -293,6 +293,7 @@ static void at_app_entry(void *ctx, void *unused, void *unused2)
 		LOG_ERR("Unknown error (%d) during sidewalk start!", err);
 		return;
 	}
+	at_ctx->stack_started = true;
 
 	// Initialize location services
 	init_location_services(at_ctx);
@@ -395,18 +396,31 @@ static void at_app_entry(void *ctx, void *unused, void *unused2)
 				if (err) {
 					LOG_DBG("sid_process returned %d", err);
 				}
+				LOG_INF("Calling sid_stop with link_mask 0x%x, stack_started=%d", 
+					at_ctx->sidewalk_config.link_mask, at_ctx->stack_started);
 				err = sid_stop(at_ctx->handle, at_ctx->sidewalk_config.link_mask);
-				if (err) {
-					LOG_ERR("sid_stop returned %d", err); 
-				}
+				LOG_INF("sid_stop returned %d", err);
+				// Always mark stack as stopped when we intend to stop
+				// This prevents sid_start errors on next wake
+				at_ctx->stack_started = false;
+				LOG_INF("stack_started set to false");
 				k_msgq_purge(&at_thread_msgq);
 				break;
 
 			case EVENT_SID_START:
-				LOG_INF("Starting Sidewalk stack...");
-				err = sid_start(at_ctx->handle, at_ctx->at_conf.sid_link_type);
-				if (err) {
-					LOG_ERR("sid_start returned %d", err);
+				LOG_INF("EVENT_SID_START: stack_started=%d", at_ctx->stack_started);
+				if (at_ctx->stack_started) {
+					LOG_DBG("Sidewalk stack already started, skipping sid_start");
+				} else {
+					LOG_INF("Starting Sidewalk stack with link_mask 0x%x...", 
+						at_ctx->sidewalk_config.link_mask);
+					err = sid_start(at_ctx->handle, at_ctx->sidewalk_config.link_mask);
+					if (err) {
+						LOG_ERR("sid_start returned %d", err);
+					} else {
+						at_ctx->stack_started = true;
+						LOG_INF("stack_started set to true");
+					}
 				}
 				break;
 
