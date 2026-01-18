@@ -234,21 +234,17 @@ static void at_app_entry(void *ctx, void *unused, void *unused2)
 	}
 
 #ifdef CONFIG_SIDEWALK_SUBGHZ_SUPPORT
-	// Only initialize radio if we're using sub-GHz links
-	if (at_ctx->sidewalk_config.link_mask & (LORA_LM | FSK_LM)) {
-		LOG_INF("Initializing radio...");
-		int32_t radio_err = sid_pal_radio_init(radio_event_notifier, radio_irq_handler, &radio_rx_packet);
-		if (radio_err) {
-			LOG_ERR("Radio init failed: %d", radio_err);
-		} else {
-			LOG_INF("Radio init success");
-		}
-		radio_err = sid_pal_radio_sleep(0);
-		if (radio_err) {
-			LOG_ERR("Radio sleep failed: %d", radio_err);
-		}
+	// Always initialize radio at startup so we can switch to LoRa later
+	LOG_INF("Initializing radio...");
+	int32_t radio_err = sid_pal_radio_init(radio_event_notifier, radio_irq_handler, &radio_rx_packet);
+	if (radio_err) {
+		LOG_ERR("Radio init failed: %d", radio_err);
 	} else {
-		LOG_INF("Skipping radio init (BLE-only mode)");
+		LOG_INF("Radio init success");
+	}
+	radio_err = sid_pal_radio_sleep(0);
+	if (radio_err) {
+		LOG_ERR("Radio sleep failed: %d", radio_err);
 	}
 #endif
 
@@ -268,26 +264,24 @@ static void at_app_entry(void *ctx, void *unused, void *unused2)
 	}
 
 #ifdef CONFIG_SIDEWALK_SUBGHZ_SUPPORT
-	// Only access LR11XX if radio was initialized (sub-GHz mode)
-	if (at_ctx->sidewalk_config.link_mask & (LORA_LM | FSK_LM)) {
-		k_msleep(500); // Let the LR11XX wake up
-		LOG_INF("LR11XX sleep done, getting drv_ctx...");
+	// Always print LR11XX version since radio is always initialized
+	k_msleep(500); // Let the LR11XX wake up
+	LOG_INF("LR11XX sleep done, getting drv_ctx...");
 
-		lr11xx_system_version_t version_trx = { 0x00 };
-		void *drv_ctx;
-		drv_ctx = lr11xx_get_drv_ctx();
-		LOG_INF("Got drv_ctx, about to wake LR11XX...");
-		if (lr11xx_system_wakeup(drv_ctx) != LR11XX_STATUS_OK) {
-			LOG_ERR("LR11XX wake-up failed");
-		}
-		k_msleep(100);
-		lr11xx_system_get_version(drv_ctx, &version_trx);
-		PRINT_LR_VERSION();
+	lr11xx_system_version_t version_trx = { 0x00 };
+	void *drv_ctx;
+	drv_ctx = lr11xx_get_drv_ctx();
+	LOG_INF("Got drv_ctx, about to wake LR11XX...");
+	if (lr11xx_system_wakeup(drv_ctx) != LR11XX_STATUS_OK) {
+		LOG_ERR("LR11XX wake-up failed");
 	}
+	k_msleep(100);
+	lr11xx_system_get_version(drv_ctx, &version_trx);
+	PRINT_LR_VERSION();
 #endif
 
-	LOG_INF("Calling sid_start...");
-	err = sid_start(at_ctx->handle, at_ctx->sidewalk_config.link_mask);
+	LOG_INF("Calling sid_start with default link type...");
+	err = sid_start(at_ctx->handle, at_ctx->at_conf.sid_link_type);
 	LOG_INF("sid_start returned: %d", err);
 	if (err) {
 		LOG_ERR("Unknown error (%d) during sidewalk start!", err);
@@ -331,7 +325,8 @@ static void at_app_entry(void *ctx, void *unused, void *unused2)
 				break;
 
 			case EVENT_RADIO_SWITCH:
-				LOG_INF("Switching Sidewalk radios...");
+				LOG_INF("Switching Sidewalk radio to %s...", 
+					(at_ctx->at_conf.sid_link_type == BLE_LM) ? "BLE" : "LoRa");
 				at_event_send(EVENT_SID_STOP);
 				scan_timer_set_and_run(K_MSEC(2000));
 				break;
@@ -348,7 +343,7 @@ static void at_app_entry(void *ctx, void *unused, void *unused2)
 
 			case EVENT_BLE_CONNECTION_WAIT:
 				if (at_ctx->sidewalk_state == STATE_SIDEWALK_READY && 
-				    (at_ctx->link_status.link_status_mask & BLE_LM) == LINK_UP) {
+				    (at_ctx->link_status.link_status_mask & BLE_LM) != 0) {
 					at_event_send(EVENT_SEND_UPLINK);
 					ble_conn_timer_stop();
 				} else {
@@ -363,10 +358,17 @@ static void at_app_entry(void *ctx, void *unused, void *unused2)
 				break;
 
 			case EVENT_SEND_UPLINK:
+				// Check if link is ready before sending
+				if (at_ctx->sidewalk_state != STATE_SIDEWALK_READY) {
+					LOG_DBG("Sidewalk not ready, deferring uplink");
+					break;
+				}
 				if (at_ctx->at_conf.sid_link_type == BLE_LM && 
-				    (at_ctx->sidewalk_state != STATE_SIDEWALK_READY || 
-				     (at_ctx->link_status.link_status_mask & BLE_LM) == LINK_DOWN)) {
+				    (at_ctx->link_status.link_status_mask & BLE_LM) == 0) {
 					at_event_send(EVENT_BLE_CONNECTION_REQUEST);			
+				} else if (at_ctx->at_conf.sid_link_type == LORA_LM &&
+				           (at_ctx->link_status.link_status_mask & LORA_LM) == 0) {
+					LOG_DBG("LoRa link not up yet, deferring uplink");
 				} else {
 					LOG_INF("Sending uplink...");
 					at_send_uplink(at_ctx);
@@ -392,18 +394,19 @@ static void at_app_entry(void *ctx, void *unused, void *unused2)
 
 			case EVENT_SID_STOP:
 				LOG_INF("Going to sleep...");
-				err = sid_process(at_ctx->handle);
-				if (err) {
-					LOG_DBG("sid_process returned %d", err);
+				if (at_ctx->stack_started) {
+					err = sid_process(at_ctx->handle);
+					if (err) {
+						LOG_DBG("sid_process returned %d", err);
+					}
+					LOG_INF("Calling sid_stop with link_type 0x%x", 
+						at_ctx->at_conf.sid_link_type);
+					err = sid_stop(at_ctx->handle, at_ctx->at_conf.sid_link_type);
+					LOG_INF("sid_stop returned %d", err);
+					at_ctx->stack_started = false;
+				} else {
+					LOG_DBG("Stack not running, skipping sid_stop");
 				}
-				LOG_INF("Calling sid_stop with link_mask 0x%x, stack_started=%d", 
-					at_ctx->sidewalk_config.link_mask, at_ctx->stack_started);
-				err = sid_stop(at_ctx->handle, at_ctx->sidewalk_config.link_mask);
-				LOG_INF("sid_stop returned %d", err);
-				// Always mark stack as stopped when we intend to stop
-				// This prevents sid_start errors on next wake
-				at_ctx->stack_started = false;
-				LOG_INF("stack_started set to false");
 				k_msgq_purge(&at_thread_msgq);
 				break;
 
@@ -412,9 +415,9 @@ static void at_app_entry(void *ctx, void *unused, void *unused2)
 				if (at_ctx->stack_started) {
 					LOG_DBG("Sidewalk stack already started, skipping sid_start");
 				} else {
-					LOG_INF("Starting Sidewalk stack with link_mask 0x%x...", 
-						at_ctx->sidewalk_config.link_mask);
-					err = sid_start(at_ctx->handle, at_ctx->sidewalk_config.link_mask);
+					LOG_INF("Starting Sidewalk stack with link_type 0x%x...", 
+						at_ctx->at_conf.sid_link_type);
+					err = sid_start(at_ctx->handle, at_ctx->at_conf.sid_link_type);
 					if (err) {
 						LOG_ERR("sid_start returned %d", err);
 					} else {
@@ -470,10 +473,10 @@ static const struct bt_gatt_authorization_cb gatt_authorization_callbacks = {
 
 sid_error_t at_thread_init(void)
 {
-	// Load config
+	// Load config - default to BLE for low power operation
 	asset_tracker_context.at_conf = (struct at_config) {
 		.max_rec = 100,
-		.sid_link_type = LORA_LM,
+		.sid_link_type = BLE_LM,
 		.motion_period = CONFIG_IN_MOTION_PER_M,
 		.scan_freq_motion = CONFIG_MOTION_SCAN_PER_S,
 		.motion_thres = 5,
@@ -481,7 +484,7 @@ sid_error_t at_thread_init(void)
 	};
 
 	asset_tracker_context.sidewalk_config = (struct sid_config) {
-		.link_mask = BLE_LM,  // Start with BLE only for debugging
+		.link_mask = (BLE_LM | LORA_LM),  // Init with all supported links, start with default
 		.dev_ch = {
 			.type = SID_END_DEVICE_TYPE_STATIC,
 			.power_type = SID_END_DEVICE_POWERED_BY_BATTERY_AND_LINE_POWER,
