@@ -83,6 +83,7 @@ typedef struct at_context {
 	struct link_status link_status;
 	bool sidewalk_registered;
 	bool stack_started;
+	bool ble_location_pending;  // Waiting for BLE ready to trigger L1 location
 	enum at_state state;
 	bool connection_request;
 	bool motion;
@@ -110,6 +111,9 @@ typedef enum at_events {
 	EVENT_SID_START,
 	EVENT_SID_STOP,
 	EVENT_UPLINK_COMPLETE,
+	EVENT_BLE_LOCATION_START,   // Switch to BLE-only mode for L1 location
+	EVENT_BLE_LOCATION_READY,   // BLE stack ready, trigger L1 location
+	EVENT_RESTORE_FULL_STACK,   // Restore full stack after BLE location
 } at_event_t;
 
 /**

@@ -106,10 +106,17 @@ static void on_sidewalk_status_changed(const struct sid_status *status, void *co
 	if (at_ctx->sidewalk_state == STATE_SIDEWALK_READY) {
 		if(at_ctx->state == AT_STATE_INIT) {
 			at_ctx->state = AT_STATE_RUN;
-			LOG_INF("Device time syncronized to Sidewalk network time.  Asset tracker running...");
-			// scan_timer_set_and_run(K_MSEC(at_ctx->at_conf.scan_freq_motion));
+			LOG_INF("Device time synchronized to Sidewalk network time. Asset tracker running...");
+			// Start the scan timer - first scan in 5 seconds
 			scan_timer_set_and_run(K_MSEC(5000));
-			at_event_send(EVENT_SID_STOP);
+			// Don't stop the stack here - let the timer-triggered uplink complete first
+		}
+		
+		/* If BLE location is pending and BLE link is up, trigger it now */
+		if (at_ctx->ble_location_pending && 
+		    (status->detail.link_status_mask & SID_LINK_TYPE_1) != 0) {
+			LOG_INF("BLE ready, triggering L1 location...");
+			at_event_send(EVENT_BLE_LOCATION_READY);
 		}
 	}
 

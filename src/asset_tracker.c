@@ -13,6 +13,7 @@
 
 #if defined(CONFIG_ASSET_TRACKER_CLI)
 #include "at_shell.h"
+#include "location_shell.h"
 #endif
 
 #include <halo_lr11xx_radio.h>
@@ -132,6 +133,8 @@ static void location_callback(const struct sid_location_result *const result, vo
 	
 	if (result->err != SID_ERROR_NONE) {
 		LOG_ERR("Location error: %d", result->err);
+		// Still send sensor telemetry even if location failed
+		at_event_send(EVENT_SEND_UPLINK);
 	}
 }
 
@@ -294,6 +297,7 @@ static void at_app_entry(void *ctx, void *unused, void *unused2)
 
 	#if defined(CONFIG_ASSET_TRACKER_CLI)
 	AT_CLI_init(at_ctx);
+	location_shell_init(at_ctx);
 	#endif
 
 	at_ctx->sidewalk_state = STATE_SIDEWALK_NOT_READY;
@@ -358,26 +362,23 @@ static void at_app_entry(void *ctx, void *unused, void *unused2)
 				break;
 
 			case EVENT_SEND_UPLINK:
-				// Check if link is ready before sending
-				if (at_ctx->sidewalk_state != STATE_SIDEWALK_READY) {
-					LOG_DBG("Sidewalk not ready, deferring uplink");
-					break;
+				// For BLE, we need to request connection first if link is down
+				if (at_ctx->at_conf.sid_link_type == BLE_LM) {
+					if (at_ctx->sidewalk_state != STATE_SIDEWALK_READY || 
+					    (at_ctx->link_status.link_status_mask & BLE_LM) == 0) {
+						at_event_send(EVENT_BLE_CONNECTION_REQUEST);
+						break;
+					}
 				}
-				if (at_ctx->at_conf.sid_link_type == BLE_LM && 
-				    (at_ctx->link_status.link_status_mask & BLE_LM) == 0) {
-					at_event_send(EVENT_BLE_CONNECTION_REQUEST);			
-				} else if (at_ctx->at_conf.sid_link_type == LORA_LM &&
-				           (at_ctx->link_status.link_status_mask & LORA_LM) == 0) {
-					LOG_DBG("LoRa link not up yet, deferring uplink");
-				} else {
-					LOG_INF("Sending uplink...");
-					at_send_uplink(at_ctx);
-				}
+				// For LoRa, just need time sync - it's connectionless/fire-and-forget
+				// No need to check link_status_mask for LoRa
+				LOG_INF("Sending uplink...");
+				at_send_uplink(at_ctx);
 				break;
 
 			case EVENT_UPLINK_COMPLETE:
-				LOG_INF("Uplink complete...");
-				at_event_send(EVENT_SID_STOP);
+				LOG_INF("Uplink complete.");
+				// Stack stays running - no longer stopping after each uplink
 				break;
 
 			case EVENT_SCAN_SENSORS:
@@ -423,8 +424,105 @@ static void at_app_entry(void *ctx, void *unused, void *unused2)
 					} else {
 						at_ctx->stack_started = true;
 						LOG_INF("stack_started set to true");
+						// Re-initialize location services after stack restart
+						sid_location_deinit(at_ctx->handle);
+						init_location_services(at_ctx);
 					}
 				}
+				break;
+
+			case EVENT_BLE_LOCATION_START:
+				/* Switch to BLE-only mode for L1 location */
+				LOG_INF("Switching to BLE-only mode for L1 location...");
+				
+				/* Set pending flag - will trigger location when BLE is ready */
+				at_ctx->ble_location_pending = true;
+				
+				/* Stop current stack */
+				if (at_ctx->stack_started) {
+					sid_location_deinit(at_ctx->handle);
+					err = sid_stop(at_ctx->handle, at_ctx->sidewalk_config.link_mask);
+					LOG_INF("sid_stop returned %d", err);
+					at_ctx->stack_started = false;
+				}
+				
+				/* Deinit and reinit with BLE-only */
+				sid_deinit(at_ctx->handle);
+				at_ctx->handle = NULL;
+				
+				/* Reinit with BLE-only config */
+				struct sid_config ble_only_config = at_ctx->sidewalk_config;
+				ble_only_config.link_mask = BLE_LM;
+				ble_only_config.sub_ghz_link_config = NULL;
+				
+				err = sid_init(&ble_only_config, &at_ctx->handle);
+				if (err != SID_ERROR_NONE) {
+					LOG_ERR("sid_init (BLE-only) failed: %d", err);
+					at_ctx->ble_location_pending = false;
+					at_event_send(EVENT_RESTORE_FULL_STACK);
+					break;
+				}
+				
+				err = sid_start(at_ctx->handle, BLE_LM);
+				if (err != SID_ERROR_NONE) {
+					LOG_ERR("sid_start (BLE-only) failed: %d", err);
+					at_ctx->ble_location_pending = false;
+					at_event_send(EVENT_RESTORE_FULL_STACK);
+					break;
+				}
+				at_ctx->stack_started = true;
+				LOG_INF("BLE-only stack started, requesting connection...");
+				
+				/* Request BLE connection - location will trigger when ready */
+				err = sid_ble_bcn_connection_request(at_ctx->handle, true);
+				if (err != SID_ERROR_NONE) {
+					LOG_ERR("Error setting BLE connection request: %d", err);
+				}
+				break;
+
+			case EVENT_BLE_LOCATION_READY:
+				/* BLE stack is ready, now trigger L1 location */
+				LOG_INF("BLE ready, initializing and running L1 location...");
+				at_ctx->ble_location_pending = false;
+				
+				/* Trigger the BLE location from location_shell */
+				location_shell_trigger_ble_location();
+				break;
+
+			case EVENT_RESTORE_FULL_STACK:
+				/* Restore full stack after BLE location */
+				LOG_INF("Restoring full stack (BLE + LoRa)...");
+				
+				/* Stop and deinit current stack */
+				if (at_ctx->stack_started) {
+					sid_location_deinit(at_ctx->handle);
+					sid_stop(at_ctx->handle, BLE_LM);
+					at_ctx->stack_started = false;
+				}
+				if (at_ctx->handle) {
+					sid_deinit(at_ctx->handle);
+					at_ctx->handle = NULL;
+				}
+				
+				/* Reinit with full config */
+				err = sid_init(&at_ctx->sidewalk_config, &at_ctx->handle);
+				if (err != SID_ERROR_NONE) {
+					LOG_ERR("sid_init (full) failed: %d", err);
+					break;
+				}
+				
+				/* Start with configured link type */
+				err = sid_start(at_ctx->handle, at_ctx->at_conf.sid_link_type);
+				if (err != SID_ERROR_NONE) {
+					LOG_ERR("sid_start (full) failed: %d", err);
+					break;
+				}
+				at_ctx->stack_started = true;
+				
+				/* Reinit location services with full config */
+				init_location_services(at_ctx);
+				
+				LOG_INF("Full stack restored, link_type=0x%x", at_ctx->at_conf.sid_link_type);
 				break;
 
 			default:
@@ -473,10 +571,10 @@ static const struct bt_gatt_authorization_cb gatt_authorization_callbacks = {
 
 sid_error_t at_thread_init(void)
 {
-	// Load config - default to BLE for low power operation
+	// Load config - default to LoRa for asset tracking
 	asset_tracker_context.at_conf = (struct at_config) {
 		.max_rec = 100,
-		.sid_link_type = BLE_LM,
+		.sid_link_type = LORA_LM,
 		.motion_period = CONFIG_IN_MOTION_PER_M,
 		.scan_freq_motion = CONFIG_MOTION_SCAN_PER_S,
 		.motion_thres = 5,
