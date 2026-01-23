@@ -51,6 +51,17 @@ config ASSET_TRACKER_CLI
         help
                Enables(y) or disables(n) the zephyr shell for the Asset Tracker.
 
+config GNSS_SCAN_MODE_STATIC
+        prompt "Use STATIC GNSS scan mode for better accuracy"
+        bool
+        default n
+        help
+               When enabled, uses STATIC scan mode which performs longer scans
+               (~30+ seconds) for better accuracy (10-50m).
+               When disabled, uses MOBILE scan mode with multiple quick scans
+               (~3-5 seconds each) optimized for moving objects.
+               STATIC mode uses more power but provides better accuracy.
+
 endmenu
 
 module = TRACKER
