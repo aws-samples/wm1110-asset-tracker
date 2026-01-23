@@ -27,6 +27,8 @@ class EnvConfig:
             self.env = config_struct["Config"].get("ENV", "prod")
             self.aws_profile = config_struct["Config"].get("AWS_PROFILE", "default")
             self.destination_name = config_struct["Config"].get("DESTINATION_NAME", "SidewalkDestination")
+            self.enable_positioning = config_struct["Config"].get("ENABLE_POSITIONING", False)
+            self.location_destination_name = config_struct["Config"].get("LOCATION_DESTINATION_NAME", None)
             platform = config_struct["Config"].get("HARDWARE_PLATFORM", "ALL")
             self.mfgaddress = config_struct["Config"].get("MFG_ADDRESS", "0xd0000")
         else:
@@ -36,6 +38,8 @@ class EnvConfig:
             self.mfgaddress = "0xd0000"
 
             self.destination_name = "SidewalkDestination"
+            self.enable_positioning = False
+            self.location_destination_name = None
             platform = "ALL"
 
         if platform == "ALL":
@@ -68,8 +72,8 @@ class EnvConfig:
 
         self.my_cwd = os.path.dirname(os.path.realpath(__file__))
 
-        logger.debug(f"Loaded configuration: AWS_PROFILE: {self.aws_profile}, DESTINATION: {self.destination_name} , "
-                    f"DEVICE_PROFILE: {self.device_profile_id}")
+        logger.debug(f"Loaded configuration: AWS_PROFILE: {self.aws_profile}, DESTINATION: {self.destination_name}, "
+                    f"DEVICE_PROFILE: {self.device_profile_id}, POSITIONING: {self.enable_positioning}")
 
     def update_profile_id(self, device_profile_id):
         self.device_profile_id = device_profile_id
