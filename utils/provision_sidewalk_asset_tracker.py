@@ -182,12 +182,25 @@ def main():
     if not e.device_profile_id:
         profile_name = 'AssetTracker_prototype_' + ''.join(random.choice(string.ascii_lowercase) for i in range(10))
         logger.info(f"No DeviceProfileID specified. Creating a new DeviceProfile with random name {profile_name}")
-        response = iot_client.create_device_profile(Sidewalk={}, Name=profile_name)
-        print_response(response)
-        print_status_code(response)
-        device_profile_id = response["Id"]
-        logger.info(f"Profile created, {device_profile_id}")
-        e.update_profile_id(device_profile_id)
+        try:
+            response = iot_client.create_device_profile(Sidewalk={}, Name=profile_name)
+            print_response(response)
+            print_status_code(response)
+            device_profile_id = response["Id"]
+            logger.info(f"Profile created, {device_profile_id}")
+            e.update_profile_id(device_profile_id)
+        except ClientError as ce:
+            if ce.response['Error']['Code'] == 'ConflictException':
+                logger.info("Device profile creation conflict - looking for existing Sidewalk device profiles...")
+                device_profile_id = find_existing_sidewalk_profile(iot_client)
+                if device_profile_id:
+                    logger.info(f"Found existing Sidewalk device profile: {device_profile_id}")
+                    e.update_profile_id(device_profile_id)
+                else:
+                    logger.error("No existing Sidewalk device profile found and unable to create new one")
+                    return
+            else:
+                raise ce
 
     logger.info(f"Getting a DeviceProfile by Id {e.device_profile_id}")
     response = iot_client.get_device_profile(Id=e.device_profile_id)
@@ -333,6 +346,30 @@ def get_status_code(api_response):
 def print_status_code(api_response):
     code = get_status_code(api_response)
     logger.info(f"Status: {code}")
+
+
+def find_existing_sidewalk_profile(iot_client):
+    """
+    Search for an existing Sidewalk device profile in the account.
+    Returns the first Sidewalk profile ID found, or None if none exist.
+    """
+    try:
+        paginator = iot_client.get_paginator('list_device_profiles')
+        for page in paginator.paginate():
+            for profile in page.get('DeviceProfileList', []):
+                profile_id = profile.get('Id')
+                # Get full profile details to check if it's a Sidewalk profile
+                try:
+                    details = iot_client.get_device_profile(Id=profile_id)
+                    if 'Sidewalk' in details:
+                        logger.info(f"Found Sidewalk profile: {profile.get('Name', 'unnamed')} ({profile_id})")
+                        return profile_id
+                except ClientError:
+                    continue
+        return None
+    except ClientError as e:
+        logger.error(f"Error listing device profiles: {e}")
+        return None
 
 
 main()
