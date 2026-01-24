@@ -114,6 +114,7 @@ typedef enum at_events {
 	EVENT_BLE_LOCATION_START,   // Switch to BLE-only mode for L1 location
 	EVENT_BLE_LOCATION_READY,   // BLE stack ready, trigger L1 location
 	EVENT_RESTORE_FULL_STACK,   // Restore full stack after BLE location
+	EVENT_FACTORY_RESET,        // Factory reset - clears Sidewalk registration
 } at_event_t;
 
 /**

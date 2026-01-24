@@ -71,6 +71,14 @@ static int cmd_print_status(const struct shell *sh, size_t argc, char **argv) {
 	return 0;
 }
 
+static int cmd_factory_reset(const struct shell *sh, size_t argc, char **argv) {
+	shell_warn(sh, "Factory reset will clear Sidewalk registration!");
+	shell_warn(sh, "Device will need to re-register with the Sidewalk network.");
+	shell_print(sh, "Initiating factory reset...");
+	at_event_send(EVENT_FACTORY_RESET);
+	return 0;
+}
+
 SHELL_STATIC_SUBCMD_SET_CREATE(
 	sub_config, 
 	SHELL_CMD_ARG(radio, NULL, "set sidewalk radio to use: 1=ble, 2=lora", cmd_config_radio, 2, 0),
@@ -81,6 +89,7 @@ SHELL_STATIC_SUBCMD_SET_CREATE(asset_tracker,
 	SHELL_CMD_ARG(status, NULL, "Print device status", cmd_print_status, 1, 0),
 	SHELL_CMD_ARG(config, &sub_config, "Device config menu", NULL, 1, 0),
 	SHELL_CMD_ARG(scan, NULL, "Trigger location scan", cmd_trigger_scan, 1, 0),
+	SHELL_CMD_ARG(factory_reset, NULL, "Factory reset - clears Sidewalk registration, forces re-registration", cmd_factory_reset, 1, 0),
 	SHELL_CMD_ARG(enter_bootloader, NULL, "Enter bootloader for UF2 flashing", cmd_enter_bootloader, 1, 0),
 	SHELL_SUBCMD_SET_END
 );

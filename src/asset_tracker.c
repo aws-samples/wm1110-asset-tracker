@@ -525,6 +525,24 @@ static void at_app_entry(void *ctx, void *unused, void *unused2)
 				LOG_INF("Full stack restored, link_type=0x%x", at_ctx->at_conf.sid_link_type);
 				break;
 
+			case EVENT_FACTORY_RESET:
+				/* Factory reset - clears Sidewalk registration and forces re-registration */
+				LOG_INF("Factory reset requested - clearing Sidewalk registration...");
+				
+				if (at_ctx->handle == NULL) {
+					LOG_ERR("Sidewalk not initialized, cannot factory reset");
+					break;
+				}
+				
+				err = sid_set_factory_reset(at_ctx->handle);
+				if (err != SID_ERROR_NONE) {
+					LOG_ERR("sid_set_factory_reset failed: %d", err);
+				} else {
+					LOG_INF("Factory reset initiated successfully");
+					LOG_INF("Device will need to re-register with Sidewalk network");
+				}
+				break;
+
 			default:
 				LOG_ERR("Invalid Event received: %d", event);
 			}
@@ -574,7 +592,7 @@ sid_error_t at_thread_init(void)
 	// Load config - default to LoRa for asset tracking
 	asset_tracker_context.at_conf = (struct at_config) {
 		.max_rec = 100,
-		.sid_link_type = LORA_LM,
+		.sid_link_type = (BLE_LM | LORA_LM),
 		.motion_period = CONFIG_IN_MOTION_PER_M,
 		.scan_freq_motion = CONFIG_MOTION_SCAN_PER_S,
 		.motion_thres = 5,
