@@ -24,18 +24,17 @@ Key features:
 
 ### Prerequisites
 
-1. Install the nRF Connect SDK v3.2.1 using [nRF Connect for Desktop](https://www.nordicsemi.com/Products/Development-tools/nRF-Connect-for-Desktop)
+1. Follow the instructions to Setup the Sidewalk SDK and install the nRF Connect SDK v3.2.1 using [nRF Connect for Desktop](https://docs.nordicsemi.com/bundle/addon-sidewalk-latest/page/setting_up_sidewalk_environment/setting_up_sdk.html)
 
-2. Clone this repository alongside the NCS installation:
+2. Activate a v3.2.1 shell env:
+   ```bash
+   nrfutil sdk-manager toolchain launch --ncs-version v3.2.1 --shell
+   ```
+
+3. Clone this repository alongside the NCS installation:
    ```bash
    cd /path/to/ncs-workspace
    git clone https://github.com/aws-samples/wm1110-asset-tracker
-   ```
-
-3. Ensure the Sidewalk SDK is enabled in your west manifest:
-   ```bash
-   west config manifest.group-filter "+sidewalk"
-   west update
    ```
 
 ### Build Commands
@@ -47,7 +46,7 @@ From the `wm1110-asset-tracker` directory:
 west build -b wio_tracker_1110/nrf52840 --pristine -- -DBOARD_ROOT=.
 
 # Incremental build
-west build
+west build -b wio_tracker_1110/nrf52840 -- -DBOARD_ROOT=.
 ```
 
 The UF2 image will be at: `build/wm1110-asset-tracker/zephyr/AssetTrackerDeviceApp.uf2`
