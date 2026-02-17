@@ -28,7 +28,9 @@ static void scan_timer_cb(struct k_timer *timer_id)
 
 	//push sensor scan event
 	at_event_send(EVENT_SCAN_SENSORS);
-	//push location scan event
+	
+	// Trigger location scan (WiFi/GNSS for LoRa, or gateway location for BLE)
+	// The location callback will then trigger EVENT_SEND_UPLINK when complete
 	at_event_send(EVENT_SCAN_LOC);
 
 	//reload scan timer

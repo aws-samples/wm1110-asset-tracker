@@ -1,0 +1,416 @@
+/*
+ * Copyright (c) 2017 Linaro Limited
+ * Copyright (c) 2024 Seeed Studio
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/dts-v1/;
+#include <nordic/nrf52840_qiaa.dtsi>
+#include <zephyr/dt-bindings/gpio/gpio.h>
+#include <zephyr/dt-bindings/led/led.h>
+#include "wio_tracker_1110_nrf52840-pinctrl.dtsi"
+#include <zephyr/dt-bindings/i2c/i2c.h>
+#include <zephyr/dt-bindings/lora_lbm/lr11xx.h>
+
+/ {
+	model = "Seeed Wio Tracker 1110";
+	compatible = "seeed,wio-tracker-1110";
+
+	chosen {
+		zephyr,console = &usb_cdc_acm_uart;
+		zephyr,shell-uart = &usb_cdc_acm_uart;
+		nordic,pm-ext-flash = &p25q32sh;
+		zephyr,sram = &sram0;
+		zephyr,flash = &flash0;
+		zephyr,code-partition = &slot0_partition;
+		zephyr,ieee802154 = &ieee802154;
+		zephyr,lora-transceiver = &lora_lr1110;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+		led0: led_0 {
+			gpios = <&gpio0 6 GPIO_ACTIVE_LOW>;
+			label = "Blue LED";
+		};
+	};
+
+	buttons {
+		compatible = "gpio-keys";
+		button0: button_0 {
+			gpios = <&gpio1 2 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "Push button switch 0";
+			zephyr,code = <11>;
+		};
+	};
+
+	grove_digital0: grove_digital0 {
+		compatible = "grove-header";
+		#gpio-cells = <2>;
+		gpio-map-mask = <0xffffffff 0xffffffc0>;
+		gpio-map-pass-thru = <0 0x3f>;
+		gpio-map = <0 0 &gpio0 13 0>,
+				<1 0 &gpio0 14 0>;
+	};
+
+	grove_digital1: grove_digital1 {
+		compatible = "grove-header";
+		#gpio-cells = <2>;
+		gpio-map-mask = <0xffffffff 0xffffffc0>;
+		gpio-map-pass-thru = <0 0x3f>;
+		gpio-map = <0 0 &gpio0 15 0>,
+				<1 0 &gpio0 16 0>;
+	};
+
+	grove_digital2: grove_digital2 {
+		compatible = "grove-header";
+		#gpio-cells = <2>;
+		gpio-map-mask = <0xffffffff 0xffffffc0>;
+		gpio-map-pass-thru = <0 0x3f>;
+		gpio-map = <0 0 &gpio0 30 0>,
+				<1 0 &gpio0 31 0>;
+	};
+
+	grove_digital_analog: grove_digital_analog {
+		compatible = "grove-header";
+		#gpio-cells = <2>;
+		gpio-map-mask = <0xffffffff 0xffffffc0>;
+		gpio-map-pass-thru = <0 0x3f>;
+		gpio-map = <0 0 &gpio0 28 0>,
+				<1 0 &gpio0 29 0>;
+	};
+
+	grove_digital_uart: grove_digital_uart {
+		compatible = "grove-header";
+		#gpio-cells = <2>;
+		gpio-map-mask = <0xffffffff 0xffffffc0>;
+		gpio-map-pass-thru = <0 0x3f>;
+		gpio-map = <0 0 &gpio0 24 0>,
+				<1 0 &gpio0 25 0>;
+	};
+
+	grove_digital_i2c: grove_digital_i2c {
+		compatible = "grove-header";
+		#gpio-cells = <2>;
+		gpio-map-mask = <0xffffffff 0xffffffc0>;
+		gpio-map-pass-thru = <0 0x3f>;
+		gpio-map = <0 0 &gpio0 4 0>,
+				<1 0 &gpio0 5 0>;
+	};
+
+	/* Regulators */
+	B3V3_pwr: grove_power_3v3_en {
+		compatible = "regulator-fixed";
+		regulator-name = "grove_headers_power_3v3_enable";
+		enable-gpios = <&gpio1 1 GPIO_ACTIVE_HIGH>;
+		regulator-boot-on;
+		startup-delay-us = <20000>;
+	};
+
+	/* These aliases are provided for compatibility with samples */
+	aliases {
+		led0 = &led0;
+		sw0 = &button0;
+		button0 = &button0;
+		watchdog0 = &wdt0;
+		spi-flash0 = &p25q32sh;
+		accel0 = &lis3dh;
+		lora-transceiver = &lora_lr1110;
+	};
+};
+
+&adc {
+	status = "okay";
+};
+
+&gpiote {
+	status = "okay";
+};
+
+&gpio0 {
+	status = "okay";
+};
+
+&gpio1 {
+	status = "okay";
+};
+
+grove_uart: &uart0 {
+	compatible = "nordic,nrf-uarte";
+	status = "okay";
+	current-speed = <115200>;
+	pinctrl-0 = <&uart0_default>;
+	pinctrl-1 = <&uart0_sleep>;
+	pinctrl-names = "default", "sleep";
+};
+
+grove_i2c: &i2c1 {
+	compatible = "nordic,nrf-twim";
+	status = "okay";
+	pinctrl-0 = <&i2c1_default>;
+	pinctrl-1 = <&i2c1_sleep>;
+	pinctrl-names = "default", "sleep";
+	clock-frequency = <I2C_BITRATE_FAST>;
+
+	sht41: sht4x@44 {
+		compatible = "sensirion,sht4x";
+		reg = <0x44>;
+		repeatability = <2>;
+		vin-supply = <&B3V3_pwr>;
+	};
+
+	lis3dh: lis3dh@19 {
+		compatible = "st,lis3dh", "st,lis2dh";
+		reg = <0x19>;
+		irq-gpios = <&gpio1 3 GPIO_ACTIVE_HIGH>,
+				<&gpio1 4 GPIO_ACTIVE_HIGH>;
+		vin-supply = <&B3V3_pwr>;
+	};
+};
+
+&pwm0 {
+	status = "okay";
+	pinctrl-0 = <&pwm0_default>;
+	pinctrl-1 = <&pwm0_sleep>;
+	pinctrl-names = "default", "sleep";
+};
+
+sid_semtech: &spi0 {
+	compatible = "nordic,nrf-spi";
+	status = "okay";
+	pinctrl-0 = <&spi0_default>;
+	pinctrl-1 = <&spi0_sleep>;
+	pinctrl-names = "default", "sleep";
+	clock-frequency = <DT_FREQ_M(8)>;
+	cs-gpios = <&gpio1 12 GPIO_ACTIVE_LOW>;
+
+	lora_semtech_lr11xxmb1xxs: lora_lr1110: lora@0 {
+		compatible = "semtech,lr1110";
+		reg = <0>;
+		spi-max-frequency = <DT_FREQ_M(8)>;
+
+		reset-gpios = <&gpio1 10 GPIO_ACTIVE_LOW>;
+		busy-gpios = <&gpio1 11 GPIO_ACTIVE_HIGH>;
+		event-gpios = <&gpio0 2 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>;
+		gnss-lna-gpios = <&gpio1 5 GPIO_ACTIVE_HIGH>;
+
+		lf-tx-path = <LR11XX_TX_PATH_LF_LP_HP>;
+		lf-clk = <LR11XX_LFCLK_XTAL>;
+		reg-mode = <LR11XX_REG_MODE_DCDC>;
+
+		rf-sw-enable = <(LR11XX_DIO5 | LR11XX_DIO6 | LR11XX_DIO7)>;
+		rf-sw-rx-mode = <LR11XX_DIO5>;
+		rf-sw-tx-mode = <(LR11XX_DIO5 | LR11XX_DIO6)>;
+		rf-sw-tx-hp-mode = <LR11XX_DIO6>;
+		rf-sw-gnss-mode = <LR11XX_DIO7>;
+
+		tcxo-voltage = <LR11XX_TCXO_SUPPLY_1_8V>;
+		tcxo-wakeup-time = <5>;
+
+		/* SWDR006 PA power config: <power, pa_duty_cycle, pa_hp_sel> */
+		/* LP PA used for -9dBm to +15dBm, HP PA for +16dBm to +22dBm */
+		tx-power-cfg-lf-lp =
+			/* Expected output power from -17dBm to +15dBm (33 entries) */
+			< ( -6) 0x00 0x00>,  /* -17dBm: maps to -9 in SWDR006 */
+			< ( -6) 0x00 0x00>,  /* -16dBm */
+			< ( -6) 0x00 0x00>,  /* -15dBm */
+			< ( -6) 0x00 0x00>,  /* -14dBm */
+			< ( -6) 0x00 0x00>,  /* -13dBm */
+			< ( -6) 0x00 0x00>,  /* -12dBm */
+			< ( -6) 0x00 0x00>,  /* -11dBm */
+			< ( -6) 0x00 0x00>,  /* -10dBm */
+			< ( -6) 0x00 0x00>,  /* -9dBm */
+			< ( -5) 0x00 0x00>,  /* -8dBm */
+			< ( -4) 0x00 0x00>,  /* -7dBm */
+			< ( -3) 0x00 0x00>,  /* -6dBm */
+			< ( -2) 0x00 0x00>,  /* -5dBm */
+			< ( -1) 0x00 0x00>,  /* -4dBm */
+			< (  0) 0x00 0x00>,  /* -3dBm */
+			< (  1) 0x00 0x00>,  /* -2dBm */
+			< (  2) 0x00 0x00>,  /* -1dBm */
+			< (  3) 0x00 0x00>,  /* 0dBm */
+			< (  3) 0x00 0x00>,  /* 1dBm */
+			< (  4) 0x00 0x00>,  /* 2dBm */
+			< (  7) 0x00 0x00>,  /* 3dBm */
+			< (  8) 0x00 0x00>,  /* 4dBm */
+			< (  9) 0x00 0x00>,  /* 5dBm */
+			< ( 10) 0x00 0x00>,  /* 6dBm */
+			< ( 12) 0x00 0x00>,  /* 7dBm */
+			< ( 13) 0x00 0x00>,  /* 8dBm */
+			< ( 14) 0x00 0x00>,  /* 9dBm */
+			< ( 14) 0x01 0x00>,  /* 10dBm */
+			< ( 13) 0x02 0x00>,  /* 11dBm */
+			< ( 14) 0x02 0x00>,  /* 12dBm */
+			< ( 14) 0x04 0x00>,  /* 13dBm */
+			< ( 14) 0x05 0x00>,  /* 14dBm */
+			< ( 14) 0x07 0x00>;  /* 15dBm */
+
+		tx-power-cfg-lf-hp =
+			/* Expected output power from -9dBm to +22dBm (32 entries) */
+			< ( -6) 0x00 0x00>,  /* -9dBm */
+			< ( -5) 0x00 0x00>,  /* -8dBm */
+			< ( -4) 0x00 0x00>,  /* -7dBm */
+			< ( -3) 0x00 0x00>,  /* -6dBm */
+			< ( -2) 0x00 0x00>,  /* -5dBm */
+			< ( -1) 0x00 0x00>,  /* -4dBm */
+			< (  0) 0x00 0x00>,  /* -3dBm */
+			< (  1) 0x00 0x00>,  /* -2dBm */
+			< (  2) 0x00 0x00>,  /* -1dBm */
+			< (  3) 0x00 0x00>,  /* 0dBm */
+			< (  3) 0x00 0x00>,  /* 1dBm */
+			< (  4) 0x00 0x00>,  /* 2dBm */
+			< (  7) 0x00 0x00>,  /* 3dBm */
+			< (  8) 0x00 0x00>,  /* 4dBm */
+			< (  9) 0x00 0x00>,  /* 5dBm */
+			< ( 10) 0x00 0x00>,  /* 6dBm */
+			< ( 12) 0x00 0x00>,  /* 7dBm */
+			< ( 13) 0x00 0x00>,  /* 8dBm */
+			< ( 14) 0x00 0x00>,  /* 9dBm */
+			< ( 14) 0x01 0x00>,  /* 10dBm */
+			< ( 13) 0x02 0x00>,  /* 11dBm */
+			< ( 14) 0x02 0x00>,  /* 12dBm */
+			< ( 14) 0x04 0x00>,  /* 13dBm */
+			< ( 14) 0x05 0x00>,  /* 14dBm */
+			< ( 14) 0x07 0x00>,  /* 15dBm */
+			< ( 22) 0x03 0x03>,  /* 16dBm - HP PA starts here */
+			< ( 22) 0x04 0x03>,  /* 17dBm */
+			< ( 22) 0x02 0x05>,  /* 18dBm */
+			< ( 22) 0x05 0x04>,  /* 19dBm */
+			< ( 22) 0x03 0x07>,  /* 20dBm */
+			< ( 22) 0x04 0x07>,  /* 21dBm */
+			< ( 22) 0x04 0x07>;  /* 22dBm */
+
+		tx-power-cfg-hf =
+			< (-18) 0x04 0x00>,
+			< (-18) 0x04 0x00>,
+			< (-17) 0x04 0x00>,
+			< (-16) 0x04 0x00>,
+			< (-15) 0x04 0x00>,
+			< (-14) 0x04 0x00>,
+			< (-14) 0x04 0x00>,
+			< (-12) 0x04 0x00>,
+			< (-10) 0x04 0x00>,
+			< ( -9) 0x04 0x00>,
+			< ( -8) 0x04 0x00>,
+			< ( -7) 0x04 0x00>,
+			< ( -6) 0x04 0x00>,
+			< ( -5) 0x04 0x00>,
+			< ( -4) 0x04 0x00>,
+			< ( -3) 0x04 0x00>,
+			< ( -2) 0x03 0x00>,
+			< ( -1) 0x04 0x00>,
+			< (  0) 0x04 0x00>,
+			< (  1) 0x00 0x00>,
+			< (  2) 0x00 0x00>,
+			< (  4) 0x04 0x00>,
+			< (  5) 0x04 0x00>,
+			< (  6) 0x04 0x00>,
+			< (  7) 0x04 0x00>,
+			< (  8) 0x04 0x00>,
+			< (  9) 0x04 0x00>,
+			< ( 10) 0x04 0x00>,
+			< ( 11) 0x04 0x00>,
+			< ( 12) 0x03 0x00>,
+			< ( 13) 0x04 0x00>,
+			< ( 13) 0x00 0x00>;
+
+		rssi-calibration-lf-offset = <0>;
+		rssi-calibration-lf-tune = <12 12 14 0 1 3 4 4 3 6 6 6 6 6 6 6 6>;
+
+		rssi-calibration-mf-offset = <0>;
+		rssi-calibration-mf-tune = <2 2 2 3 3 4 5 4 4 6 5 5 6 6 6 7 6>;
+
+		rssi-calibration-hf-offset = <2030>;
+		rssi-calibration-hf-tune = <6 7 6 4 3 4 14 12 14 12 12 12 12 8 8 9 9>;
+	};
+};
+
+&qspi {
+	status = "okay";
+	pinctrl-0 = <&qspi_default>;
+	pinctrl-1 = <&qspi_sleep>;
+	pinctrl-names = "default", "sleep";
+	p25q32sh: p25q32sh@0 {
+		compatible = "nordic,qspi-nor";
+		reg = <0>;
+		sck-frequency = <100000000>;
+		quad-enable-requirements = "S2B1v1";
+		jedec-id = [85 60 16];
+		sfdp-bfp = [
+			e5 20 f1 ff  ff ff ff 00  44 eb 08 6b  08 3b 80 bb
+			ee ff ff ff  ff ff 00 ff  ff ff 00 ff  0c 20 0f 52
+			10 d8 08 81
+		];
+		size = <33554432>;
+		has-dpd;
+		t-enter-dpd = <3000>;
+		t-exit-dpd = <8000>;
+	};
+};
+
+&ieee802154 {
+	status = "okay";
+};
+
+&flash0 {
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		boot_mbr_partition: partition@0 {
+			label = "boot_mbr";
+			reg = <0x00000000 0x00001000>;
+		};
+
+		slot0_partition: partition@1000 {
+			label = "code";
+			reg = <0x00001000 0x000cf000>;
+		};
+
+		mfg_storage: partition@d0000 {
+			label = "mfg_storage";
+			reg = <0x000d0000 0x00001000>;
+		};
+
+		sidewalk_storage: partition@d1000 {
+			label = "sidewalk_storage";
+			reg = <0x000d1000 0x00001000>;
+		};
+
+		storage_partition: partition@d2000 {
+			label = "storage";
+			reg = <0x000d2000 0x00010000>;
+		};
+
+		hw_unique_key_partition: partition@f3000 {
+			label = "hw_unique_key";
+			reg = <0x000f3000 0x00001000>;
+		};
+
+		bootloader_partition: partition@f4000 {
+			label = "bootloader";
+			reg = <0x000f4000 0x00008000>;
+		};
+
+		bootloader_mbr_params_partition: partition@fe000 {
+			label = "bootloader_mbr_params";
+			reg = <0x000fe000 0x00001000>;
+		};
+
+		bootloader_settings_partition: partition@ff000 {
+			label = "bootloader_settings";
+			reg = <0x000ff000 0x00001000>;
+		};
+	};
+};
+
+zephyr_udc0: &usbd {
+	compatible = "nordic,nrf-usbd";
+	status = "okay";
+
+	usb_cdc_acm_uart: cdc-acm-uart {
+		compatible = "zephyr,cdc-acm-uart";
+	};
+};

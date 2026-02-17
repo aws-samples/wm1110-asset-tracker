@@ -1,12 +1,9 @@
-# nRF52840 DK NRF52840 board configuration
+# Seeed Wio Tracker 1110 board configuration
 
-# Copyright (c) 2016 Nordic Semiconductor ASA
+# Copyright (c) 2024 Seeed Studio
 # SPDX-License-Identifier: Apache-2.0
 
 if BOARD_WIO_TRACKER_1110
-
-config BOARD
-	default "wio_tracker_1110"
 
 config BT_CTLR
 	default BT
@@ -22,4 +19,3 @@ config USB_DEVICE_INITIALIZE_AT_BOOT
 	default y
 
 endif # USB_DEVICE_STACK
-

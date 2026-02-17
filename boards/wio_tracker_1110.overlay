@@ -11,3 +11,19 @@
 // 	status = "disabled";
 // };
 
+/ {
+	/* LR1110 radio GPIOs - gpio-keys compatible auto-configures as INPUT */
+	lr1110_gpios {
+		compatible = "gpio-keys";
+
+		lr1110_busy_gpios: busy {
+			gpios = <&gpio1 11 GPIO_ACTIVE_HIGH>;
+			label = "LR1110 Busy";
+		};
+
+		lr1110_event_gpios: event {
+			gpios = <&gpio0 2 GPIO_ACTIVE_HIGH>;
+			label = "LR1110 Event/DIO1";
+		};
+	};
+};

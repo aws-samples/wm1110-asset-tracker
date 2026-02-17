@@ -1,10 +1,10 @@
 Config:
     AWS_PROFILE: default  # Name of your AWS profile from .aws/credentials
     DESTINATION_NAME: AssetTrackerUplink  # Sidewalk destination used for uplink traffic routing
+    ENABLE_POSITIONING: true  # Enable device positioning for location resolution
+    LOCATION_DESTINATION_NAME: AssetTrackerLocation  # Destination for resolved location data (optional, uses DESTINATION_NAME if not set)
     HARDWARE_PLATFORM: NORDIC  # Available values: NORDIC, TI, SILABS or ALL
     MFG_ADDRESS: "0xd0000" # mfg page location in device flash 
-Outputs:
-    DEVICE_PROFILE_ID: null
 _Paths:
     PROVISION_SCRIPT_DIR: tools/provision
 

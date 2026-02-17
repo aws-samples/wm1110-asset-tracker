@@ -1,0 +1,87 @@
+# Partition Manager static configuration for Wio Tracker 1110
+# This matches the flash partition layout for UF2 bootloader compatibility
+#
+# Flash layout (1MB = 0x100000):
+# 0x00000-0x01000: boot_mbr (4KB) - UF2 bootloader MBR
+# 0x01000-0xd0000: app (844KB) - Application code
+# 0xd0000-0xd1000: mfg_storage (4KB) - Sidewalk manufacturing data
+# 0xd1000-0xd2000: sidewalk_storage (4KB) - Sidewalk runtime storage
+# 0xd2000-0xe2000: settings_storage (64KB) - NVS/Settings + PSA ITS (16 sectors)
+# 0xe2000-0xf3000: reserved (68KB) - Reserved for future use
+# 0xf3000-0xf4000: hw_unique_key_partition (4KB) - Hardware Unique Key storage
+# 0xf4000-0xfc000: bootloader (32KB) - UF2 bootloader
+# 0xfc000-0xfe000: bootloader_data (8KB) - Reserved bootloader area
+# 0xfe000-0xff000: bootloader_mbr_params (4KB) - Bootloader params
+# 0xff000-0x100000: bootloader_settings (4KB) - Bootloader settings
+
+boot_mbr:
+  address: 0x0
+  end_address: 0x1000
+  region: flash_primary
+  size: 0x1000
+
+app:
+  address: 0x1000
+  end_address: 0xd0000
+  region: flash_primary
+  size: 0xcf000
+
+mfg_storage:
+  address: 0xd0000
+  end_address: 0xd1000
+  region: flash_primary
+  size: 0x1000
+
+sidewalk_storage:
+  address: 0xd1000
+  end_address: 0xd2000
+  region: flash_primary
+  size: 0x1000
+
+settings_storage:
+  address: 0xd2000
+  end_address: 0xe2000
+  region: flash_primary
+  size: 0x10000
+
+reserved:
+  address: 0xe2000
+  end_address: 0xf3000
+  region: flash_primary
+  size: 0x11000
+
+hw_unique_key_partition:
+  address: 0xf3000
+  end_address: 0xf4000
+  region: flash_primary
+  size: 0x1000
+
+bootloader:
+  address: 0xf4000
+  end_address: 0xfc000
+  region: flash_primary
+  size: 0x8000
+
+bootloader_data:
+  address: 0xfc000
+  end_address: 0xfe000
+  region: flash_primary
+  size: 0x2000
+
+bootloader_mbr_params:
+  address: 0xfe000
+  end_address: 0xff000
+  region: flash_primary
+  size: 0x1000
+
+bootloader_settings:
+  address: 0xff000
+  end_address: 0x100000
+  region: flash_primary
+  size: 0x1000
+
+sram_primary:
+  address: 0x20000000
+  end_address: 0x20040000
+  region: sram_primary
+  size: 0x40000
